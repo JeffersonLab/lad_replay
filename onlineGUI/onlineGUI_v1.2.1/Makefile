@@ -30,8 +30,8 @@ ALL_LIBS = $(LIBS)
 CXXFLAGS += -DSTANDALONE
 
 ifeq ($(ROOTMVERSION), 6)
-	CXXFLAGS += -std=c++11
-	MAKEDEPEND += -std=c++11
+	#CXXFLAGS += -std=c++17
+	#MAKEDEPEND += -std=c++17
 endif
 
 # Insert extra headers needed by GetRootFileName.C or GetRunNumber.C

@@ -9,3 +9,10 @@ TH1F pkin_omega 'SHMS Energy Transfer Omega; E_{beam} - E_{scat} (GeV); Number o
 TH1F pkin_w2 'SHMS Invariant Mass W^{2}; W^{2} (GeV^{2}); Number of Entries / 0.100 GeV^{2}' P.kin.W2 100 0 10 pcut_CleanTrack
 TH1F pkin_w  'SHMS Invariant Mass W; W  (GeV); Number of Entries / 0.050 GeV' P.kin.W 200 0 10 pcut_CleanTrack
 TH1F pkin_theta 'SHMS Scattering Angle Theta; SHMS Scattering Angle (deg); Number of Entries / 0.06 deg' P.kin.scat_ang_deg 350 5 40 pcut_CleanTrack
+
+#added kin histos:
+TH1F pkin_x_bj 'SHMS x_bj; x_bj; Number of Entries' P.kin.x_bj 200 0 10 pcut_CleanTrack
+
+TH2F pkin_q2_vs_w 'SHMS Q^{2} vs W; W (GeV); Q^{2} (GeV^{2}); Number of Entries' P.kin.W P.kin.Q2 200 0 10 400 0 20 pcut_CleanTrack
+TH2F pkin_q2_vs_x_bj 'SHMS Q^{2} vs x_{bj}; x_{bj}; Q^{2} (GeV^{2}); Number of Entries' P.kin.x_bj P.kin.Q2 200 0 10 400 0 20 pcut_CleanTrack
+
