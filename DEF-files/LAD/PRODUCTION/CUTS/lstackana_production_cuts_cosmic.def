@@ -1,0 +1,3 @@
+Block: RawDecode
+#include "DEF-files/LAD/PRODUCTION/CUTS/lstackana_rawdecode_cuts.def"
+RawDecode_master 1

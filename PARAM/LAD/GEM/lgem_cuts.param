@@ -1,0 +1,46 @@
+; LAD GEM flags and parameters
+
+; flags
+lgem_commonmode_flag = 2
+lgem_zerosuppress = 0
+lgem_zerosuppress_nsigma = 5.0
+lgem_onlinezerosuppress = 0
+lgem_pedsub_online = 0
+lgem_max2Dhits = 10000;
+
+; place holder for flags, parameters
+lgem_pededstal_mode = 0
+;lgem_do_neg_signal_study = 0
+;lgem_commonmode_online_flag = 3
+lgem_commonmode_nstriphi = 20
+lgem_commonmode_nstriplo = 20
+lgem_commonmode_niter = 3
+lgem_commonmode_range_nsigma = 5.0
+lgem_commonmode_minstrips = 20
+
+;lgem_trigtime_slope = 1.0
+;lgem_sample_period = 24.0
+;lgem_sigmahitshape = 0.0004
+
+lgem_usestriptimingcut = 1
+;lgem_useTSchi2cut = 0
+;lgem_suppressfirstlast = 0
+
+lgem_clustering_flag = 0
+
+; Offline threshold (move to cut file eventually)
+lgem_threshold_sample = 100.0
+lgem_threshold_stripsum = 400.
+lgem_threshold_clustersum = 800.
+
+lgem_adcasym_cut = 0.7
+lgem_adcasym_sigma
+lgem_delta_cut = 25.0
+
+lgem_peakprominence_minsigma = 3.0
+lgem_peakprominence_minfraction = 0.15
+
+lgem_maxnu_charge = 4
+lgem_maxnv_charge = 4
+lgem_maxnu_pos = 3
+lgem_maxnv_pos = 3

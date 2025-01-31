@@ -1,0 +1,32 @@
+lhodo_debug_adc = 1
+; Number of hodoscopes
+lhodo_num_planes = 1
+lhodo_plane_names = "000"
+
+; Number of hodoscope paddles per layer
+      lhodo_000_nr = 8
+
+
+
+      hpathlength_central = 2500
+; Z positions of hodoscopes
+      lscin_000_zpos =  (89.14-11.31)
+      lscin_000_dzpos = 2.12
+      lscin_000_size = 8.0
+      lscin_000_spacing = 7.5
+
+; X,Y positions of hodoscope paddles
+      lscin_000_btm  =  41.25
+      lscin_000_top = -41.25
+      lscin_000_offset=  -1.3
+      lscin_000_center = -37.5
+                        30.0
+                        22.5
+                        15.0
+                        7.5
+                        0.0
+                        -7.5
+                        -15.0
+                        -22.5
+                        -30.0
+                        -37.5

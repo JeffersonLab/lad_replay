@@ -1,0 +1,13 @@
+; General Hall-C parameter files
+#include "PARAM/GEN/genflags.param"
+#include "PARAM/GEN/gdebug.param"
+; #include "PARAM/GEN/gtarget.param"
+; #include "PARAM/GEN/gbeam.param"
+; #include "PARAM/GEN/gscalers.param"
+
+; LAD default calibration parameter files
+#include "PARAM/LAD/HODO/lhodo_geom_cosmic_hall.param"
+#include "PARAM/LAD/HODO/lhodo_cuts_cosmic.param"
+#include "PARAM/LAD/HODO/lhodo_calib.param"
+#include "PARAM/LAD/GEN/l_reftime_cut_hmsdaq.param"
+

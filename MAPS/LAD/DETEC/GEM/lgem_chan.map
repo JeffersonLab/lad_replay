@@ -1,0 +1,100 @@
+# this should move to detector.map in MAPS/DETEC
+
+################### DECODE INFO ########################################################################
+## Channel maps for decoding explained                                                                ##
+## Each entry corresponds to one APV card                                                             ## 
+## Crate = ROC ID = 2 and 4  for SBS VTP                                                              ##
+## Slot = 11 for BigBite VTP                                                                          ##
+## fiber/mpd is fiber number for an MPD module, this is unique for each module within a VTP/SSP       ##
+## gemid is unique "production ID" of a GEM module, not currently used by analysis but useful         ##
+## for bookkeeping/tracking                                                                           ##
+## adc_ch is the unique adc channel of this APV card within its associated MPD                        ##
+## i2c is the "i2c address" of this APV card (not currently used by analysis)                         ##
+## pos maps APV cards to physical locations on the detector                                           ##
+## invert specifies whether strip index runs from "right-to-left" or "left-to-right" within an APV    ##
+## axis specifies which strip orientation/dimension of the readout strips connected to this APV       ##
+## ORDER of entries in the maps is:                                                                   ##
+## vtpcrate  slot  fiber  gemid  adc_ch   i2c   pos     invert   axis                              ##
+########################################################################################################
+
+
+#Crate slot fiber  GEMID  ADCId   I2C    Pos    Invert   axis
+#============================= Crate_2 Layer_4 GEM_0 ==================
+lgem_m0_chanmap = 
+2      13       1     0     0      15     0      0      1      
+2      13       1     0     1      14     1      0      1  
+2      13       1     0     2      13     2      0      1  
+2      13       1     0     3      12     3      0      1  
+2      13       1     0     4      11     4      0      1  
+2      13       1     0     5      10     5      0      1  
+2      13       1     0     6      9      6      0      1  
+2      13       1     0     7      8      7      0      1  
+2      13       1     0     8      7      8      0      1  
+2      13       1     0     9      6      9      0      1  
+2      13       1     0     10     5     10      0      1  
+2      13       1     0     11     4     11      0      1  
+2      13       2     0     0      15    12      0      1  
+2      13       2     0     1      14    13      0      1  
+2      13       2     0     2      13    14      0      1  
+2      13       2     0     3      12    15      0      1  
+2      13       2     0     4      11    16      0      1  
+2      13       2     0     5      10    17      0      1  
+2      13       2     0     6      9     18      0      1  
+2      13       2     0     7      8     19      0      1  
+2      13       2     0     8      7     20      0      1  
+2      13       2     0     9      6     21      0      1  
+2      13       2     0     10     5     22      0      1  
+2      13       2     0     11     4     23      0      1  
+#-----------------------------------------------------------------------
+2      13       0     0     1      4     0       0      0   
+2      13       0     0     2      5     1       0      0    
+2      13       0     0     3      6     2       0      0    
+2      13       0     0     4      7     3       0      0    
+2      13       0     0     5      8     4       0      0    
+2      13       0     0     6      9     5       0      0    
+2      13       0     0     7      10    11      0      0   
+2      13       0     0     8      15    10      0      0  
+2      13       0     0     9      14    9       0      0   
+2      13       0     0     10     13    8       0      0   
+2      13       0     0     11     12    7       0      0  
+2      13       0     0     12     11    6       0      0 
+#
+##################    LAD Chamber (far)    ##################
+lgem_m1_chanmap = 
+2      13        8     2     0      15     0      0      1
+2      13        8     2     1      14     1      0      1
+2      13        8     2     2      13     2      0      1
+2      13        8     2     3      12     3      0      1
+2      13        8     2     4      11     4      0      1
+2      13        8     2     5      10     5      0      1
+2      13        8     2     6      9      6      0      1
+2      13        8     2     7      8      7      0      1
+2      13        8     2     8      7      8      0      1
+2      13        8     2     9      6      9      0      1
+2      13        8     2     10     5     10      0      1
+2      13        8     2     11     4     11      0      1
+2      13        9     2     0      15    12      0      1
+2      13        9     2     1      14    13      0      1
+2      13        9     2     2      13    14      0      1
+2      13        9     2     3      12    15      0      1
+2      13        9     2     4      11    16      0      1
+2      13        9     2     5      10    17      0      1
+2      13        9     2     6      9     18      0      1
+2      13        9     2     7      8     19      0      1
+2      13        9     2     8      7     20      0      1
+2      13        9     2     9      6     21      0      1
+2      13        9     2     10     5     22      0      1
+2      13        9     2     11     4     23      0      1
+#----------------------------------------------------------------------
+2      13        3     2     1      4      0      0      0
+2      13        3     2     2      5      1      0      0
+2      13        3     2     3      6      2      0      0
+2      13        3     2     4      7      3      0      0
+2      13        3     2     5      8      4      0      0
+2      13        3     2     6      9      5      0      0
+2      13        3     2     7      10     11     0      0
+2      13        3     2     8      15     10     0      0
+2      13        3     2     9      14     9      0      0
+2      13        3     2     10     13     8      0      0
+2      13        3     2     11     12     7      0      0
+2      13        3     2     12     11     6      0      0

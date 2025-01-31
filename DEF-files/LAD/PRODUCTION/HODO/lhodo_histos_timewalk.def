@@ -1,0 +1,18 @@
+#*****************
+# LAD HODOSCOPES *
+#*****************
+
+#-----------------------------------
+# LAD HODO TIMEWALK 
+#-----------------------------------
+
+TH2F lhodo_000_adc_int_vs_tdc_lead_time_top 'LAD 000+ ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.000.GoodTopAdcPulseInt L.hod.000.GoodTopTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_000_adc_int_vs_tdc_lead_time_btm 'LAD 000- ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.000.GoodBtmAdcPulseInt L.hod.000.GoodBtmTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_001_adc_int_vs_tdc_lead_time_top 'LAD 001+ ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.001.GoodTopAdcPulseInt L.hod.001.GoodTopTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_001_adc_int_vs_tdc_lead_time_btm 'LAD 001- ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.001.GoodBtmAdcPulseInt L.hod.001.GoodBtmTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_100_adc_int_vs_tdc_lead_time_top 'LAD 100+ ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.100.GoodTopAdcPulseInt L.hod.100.GoodTopTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_100_adc_int_vs_tdc_lead_time_btm 'LAD 100- ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.100.GoodBtmAdcPulseInt L.hod.100.GoodBtmTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_101_adc_int_vs_tdc_lead_time_top 'LAD 101+ ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.101.GoodTopAdcPulseInt L.hod.101.GoodTopTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_101_adc_int_vs_tdc_lead_time_btm 'LAD 101- ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.101.GoodBtmAdcPulseInt L.hod.101.GoodBtmTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_200_adc_int_vs_tdc_lead_time_top 'LAD 200+ ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.200.GoodTopAdcPulseInt L.hod.200.GoodTopTdcTimeUnCorr  100 0 100 100 0 100
+TH2F lhodo_200_adc_int_vs_tdc_lead_time_btm 'LAD 200- ADC Int vs. TDC Time; ADC Int; TDC Time' L.hod.200.GoodBtmAdcPulseInt L.hod.200.GoodBtmTdcTimeUnCorr  100 0 100 100 0 100

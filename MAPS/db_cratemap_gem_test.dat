@@ -1,0 +1,8 @@
+# Date/Time = Tue Aug  23 11:00:00 2005
+# Crate map for SSP GEM data
+# ROC 2, bank 10
+TSROC 1
+
+==== Crate 2 type vme Bank Decoding
+# slot model bank
+   13   3561  10

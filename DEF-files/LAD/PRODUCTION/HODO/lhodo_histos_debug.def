@@ -1,0 +1,81 @@
+#*****************
+# LAD HODOSCOPES *
+#*****************
+
+#-----------------------------------
+# LAD HODO ADC Multiplicities 
+#-----------------------------------
+
+TH1F lhodo_000_adc_mult_top 'LAD 000+ ADC Multiplicity; Number of PMTs Hit; Total Number of +ADC Hits' L.hod.000.totNumTopAdcHits 11 0.5 11.5
+TH1F lhodo_001_adc_mult_top 'LAD 001+ ADC Multiplicity; Number of PMTs Hit; Total Number of +ADC Hits' L.hod.001.totNumTopAdcHits 11 0.5 11.5
+TH1F lhodo_100_adc_mult_top 'LAD 100+ ADC Multiplicity; Number of PMTs Hit; Total Number of +ADC Hits' L.hod.100.totNumTopAdcHits 11 0.5 11.5
+TH1F lhodo_101_adc_mult_top 'LAD 101+ ADC Multiplicity; Number of PMTs Hit; Total Number of +ADC Hits' L.hod.101.totNumTopAdcHits 11 0.5 11.5
+TH1F lhodo_200_adc_mult_top 'LAD 200+ ADC Multiplicity; Number of PMTs Hit; Total Number of +ADC Hits' L.hod.200.totNumTopAdcHits 11 0.5 11.5
+
+TH1F lhodo_000_adc_mult_btm 'LAD 000- ADC Multiplicity; Number of PMTs Hit; Total Number of -ADC Hits' L.hod.000.totNumBtmAdcHits 11 0.5 11.5
+TH1F lhodo_001_adc_mult_btm 'LAD 001- ADC Multiplicity; Number of PMTs Hit; Total Number of -ADC Hits' L.hod.001.totNumBtmAdcHits 11 0.5 11.5
+TH1F lhodo_100_adc_mult_btm 'LAD 100- ADC Multiplicity; Number of PMTs Hit; Total Number of -ADC Hits' L.hod.100.totNumBtmAdcHits 11 0.5 11.5
+TH1F lhodo_101_adc_mult_btm 'LAD 101- ADC Multiplicity; Number of PMTs Hit; Total Number of -ADC Hits' L.hod.101.totNumBtmAdcHits 11 0.5 11.5
+TH1F lhodo_200_adc_mult_btm 'LAD 200- ADC Multiplicity; Number of PMTs Hit; Total Number of -ADC Hits' L.hod.200.totNumBtmAdcHits 11 0.5 11.5
+
+TH1F lhodo_000_adc_mult 'LAD 000 ADC Multiplicity; Number of PMTs Hit; Total Number of ADC Hits' L.hod.000.totNumAdcHits 11 0.5 11.5
+TH1F lhodo_001_adc_mult 'LAD 001 ADC Multiplicity; Number of PMTs Hit; Total Number of ADC Hits' L.hod.001.totNumAdcHits 11 0.5 11.5
+TH1F lhodo_100_adc_mult 'LAD 100 ADC Multiplicity; Number of PMTs Hit; Total Number of ADC Hits' L.hod.100.totNumAdcHits 11 0.5 11.5
+TH1F lhodo_101_adc_mult 'LAD 101 ADC Multiplicity; Number of PMTs Hit; Total Number of ADC Hits' L.hod.101.totNumAdcHits 11 0.5 11.5
+TH1F lhodo_200_adc_mult 'LAD 200 ADC Multiplicity; Number of PMTs Hit; Total Number of ADC Hits' L.hod.200.totNumAdcHits 11 0.5 11.5
+
+#-----------------------------------
+# LAD HODO TDC Multiplicities
+#-----------------------------------
+
+TH1F lhodo_000_tdc_mult_top 'LAD 000+ TDC Multiplicity; Number of PMTs Hit; Total Number of +TDC Hits' L.hod.000.totNumTopTdcHits 11 0.5 11.5
+TH1F lhodo_001_tdc_mult_top 'LAD 001+ TDC Multiplicity; Number of PMTs Hit; Total Number of +TDC Hits' L.hod.001.totNumTopTdcHits 11 0.5 11.5
+TH1F lhodo_100_tdc_mult_top 'LAD 100+ TDC Multiplicity; Number of PMTs Hit; Total Number of +TDC Hits' L.hod.100.totNumTopTdcHits 11 0.5 11.5
+TH1F lhodo_101_tdc_mult_top 'LAD 101+ TDC Multiplicity; Number of PMTs Hit; Total Number of +TDC Hits' L.hod.101.totNumTopTdcHits 11 0.5 11.5
+TH1F lhodo_200_tdc_mult_top 'LAD 100+ TDC Multiplicity; Number of PMTs Hit; Total Number of +TDC Hits' L.hod.200.totNumTopTdcHits 11 0.5 11.5
+
+TH1F lhodo_000_tdc_mult_btm 'LAD 000- TDC Multiplicity; Number of PMTs Hit; Total Number of -TDC Hits' L.hod.000.totNumBtmTdcHits 11 0.5 11.5
+TH1F lhodo_001_tdc_mult_btm 'LAD 001- TDC Multiplicity; Number of PMTs Hit; Total Number of -TDC Hits' L.hod.001.totNumBtmTdcHits 11 0.5 11.5
+TH1F lhodo_100_tdc_mult_btm 'LAD 100- TDC Multiplicity; Number of PMTs Hit; Total Number of -TDC Hits' L.hod.100.totNumBtmTdcHits 11 0.5 11.5
+TH1F lhodo_101_tdc_mult_btm 'LAD 101- TDC Multiplicity; Number of PMTs Hit; Total Number of -TDC Hits' L.hod.101.totNumBtmTdcHits 11 0.5 11.5
+TH1F lhodo_200_tdc_mult_btm 'LAD 200- TDC Multiplicity; Number of PMTs Hit; Total Number of -TDC Hits' L.hod.200.totNumBtmTdcHits 11 0.5 11.5
+
+
+TH1F lhodo_000_tdc_mult 'LAD 000 TDC Multiplicity; Number of PMTs Hit; Total Number of TDC Hits' L.hod.000.totNumTdcHits 11 0.5 11.5
+TH1F lhodo_001_tdc_mult 'LAD 001 TDC Multiplicity; Number of PMTs Hit; Total Number of TDC Hits' L.hod.001.totNumTdcHits 11 0.5 11.5
+TH1F lhodo_100_tdc_mult 'LAD 100 TDC Multiplicity; Number of PMTs Hit; Total Number of TDC Hits' L.hod.100.totNumTdcHits 11 0.5 11.5
+TH1F lhodo_101_tdc_mult 'LAD 101 TDC Multiplicity; Number of PMTs Hit; Total Number of TDC Hits' L.hod.101.totNumTdcHits 11 0.5 11.5
+TH1F lhodo_200_tdc_mult 'LAD 200 TDC Multiplicity; Number of PMTs Hit; Total Number of TDC Hits' L.hod.200.totNumTdcHits 11 0.5 11.5
+
+#---------------------------------
+# LAD HODO ADC OCCUPANCIES
+#---------------------------------
+
+TH1F lhodo_000_adc_occ_top 'LAD 000+ ADC Occupancy; PMT Number; Number of +ADC Hits' L.hod.000.numTopAdcHits 11 0.5 11.5
+TH1F lhodo_001_adc_occ_top 'LAD 001+ ADC Occupancy; PMT Number; Number of +ADC Hits' L.hod.001.numTopAdcHits 11 0.5 11.5 
+TH1F lhodo_100_adc_occ_top 'LAD 100+ ADC Occupancy; PMT Number; Number of +ADC Hits' L.hod.100.numTopAdcHits 11 0.5 11.5
+TH1F lhodo_101_adc_occ_top 'LAD 101+ ADC Occupancy; PMT Number; Number of +ADC Hits' L.hod.101.numTopAdcHits 11 0.5 11.5
+TH1F lhodo_200_adc_occ_top 'LAD 200+ ADC Occupancy; PMT Number; Number of +ADC Hits' L.hod.200.numTopAdcHits 11 0.5 11.5
+
+TH1F lhodo_000_adc_occ_btm 'LAD 000- ADC Occupancy; PMT Number; Number of -ADC Hits' L.hod.000.numBtmAdcHits 11 0.5 11.5
+TH1F lhodo_001_adc_occ_btm 'LAD 001- ADC Occupancy; PMT Number; Number of -ADC Hits' L.hod.001.numBtmAdcHits 11 0.5 11.5 
+TH1F lhodo_100_adc_occ_btm 'LAD 100- ADC Occupancy; PMT Number; Number of -ADC Hits' L.hod.100.numBtmAdcHits 11 0.5 11.5
+TH1F lhodo_101_adc_occ_btm 'LAD 101- ADC Occupancy; PMT Number; Number of -ADC Hits' L.hod.101.numBtmAdcHits 11 0.5 11.5
+TH1F lhodo_200_adc_occ_btm 'LAD 200- ADC Occupancy; PMT Number; Number of -ADC Hits' L.hod.200.numBtmAdcHits 11 0.5 11.5
+
+#--------------------------------
+# LAD HODO GOOD TDC OCCUPANCIES
+#--------------------------------
+
+TH1F lhodo_000_tdc_occ_top 'LAD 000+ TDC Occupancy; PMT Number; Number of +TDC Hits' L.hod.000.numTopTdcHits 11 0.5 11.5
+TH1F lhodo_001_tdc_occ_top 'LAD 001+ TDC Occupancy; PMT Number; Number of +TDC Hits' L.hod.001.numTopTdcHits 11 0.5 11.5 
+TH1F lhodo_100_tdc_occ_top 'LAD 100+ TDC Occupancy; PMT Number; Number of +TDC Hits' L.hod.100.numTopTdcHits 11 0.5 11.5
+TH1F lhodo_101_tdc_occ_top 'LAD 101+ TDC Occupancy; PMT Number; Number of +TDC Hits' L.hod.101.numTopTdcHits 11 0.5 11.5
+TH1F lhodo_200_tdc_occ_top 'LAD 200+ TDC Occupancy; PMT Number; Number of +TDC Hits' L.hod.200.numTopTdcHits 11 0.5 11.5
+
+TH1F lhodo_000_tdc_occ_btm 'LAD 000- TDC Occupancy; PMT Number; Number of -TDC Hits' L.hod.000.numBtmTdcHits 11 0.5 11.5
+TH1F lhodo_001_tdc_occ_btm 'LAD 001- TDC Occupancy; PMT Number; Number of -TDC Hits' L.hod.001.numBtmTdcHits 11 0.5 11.5 
+TH1F lhodo_100_tdc_occ_btm 'LAD 100- TDC Occupancy; PMT Number; Number of -TDC Hits' L.hod.100.numBtmTdcHits 11 0.5 11.5
+TH1F lhodo_101_tdc_occ_btm 'LAD 101- TDC Occupancy; PMT Number; Number of -TDC Hits' L.hod.101.numBtmTdcHits 11 0.5 11.5
+TH1F lhodo_200_tdc_occ_btm 'LAD 200- TDC Occupancy; PMT Number; Number of -TDC Hits' L.hod.200.numBtmTdcHits 11 0.5 11.5
+

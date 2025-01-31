@@ -1,0 +1,5 @@
+#include "DEF-files/LAD/PRODUCTION/BLOCK/lblock_vars.def"
+#include "DEF-files/LAD/PRODUCTION/HODO/lhodo_histos.def"
+#include "DEF-files/LAD/PRODUCTION/HODO/lhodo_histos_debug.def"
+#include "DEF-files/LAD/PRODUCTION/HODO/lhodo_histos_timewalk.def"
+#include "DEF-files/LAD/PRODUCTION/CUTS/lstackana_rawdecode_cuts.def"

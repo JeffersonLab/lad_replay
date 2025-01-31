@@ -1,0 +1,21 @@
+# Sample run database from SBS for digitization 
+--------[ 2022-10-06 00:00:00 ]
+
+ebeam = 11.0
+
+sbs.theta = -30
+sbs.pcentral = -1
+sbs.phi = 0
+sbs.colldist = 1.5
+sbs.off_x = 0
+sbs.off_y = 0
+sbs.off_z = 0
+
+bb.magdist = 1.55
+bb.theta    = 33.0                                                              
+bb.pcentral = 2.0 
+
+L.theta     = 30.0
+L.pcentral  = -1
+
+sbs.magdist = 2.25

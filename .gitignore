@@ -27,3 +27,7 @@ scratch
 hcana
 
 .vscode/
+
+# Debugging files (Lucas)
+2
+SCRIPTS/LAD/LAD_link_defs.h

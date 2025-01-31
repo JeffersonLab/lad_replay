@@ -1,0 +1,44 @@
+; LAD GEM geometry
+; Total two layers, each has one module
+
+lgem_chanmap_file = "MAPS/LAD/DETEC/GEM/lgem_chan.map"
+lgem_pedfile = "PARAM/LAD/GEM/gem_ped_1683.dat"
+lgem_cmfile = "PARAM/LAD/GEM/CommonModeRange_1683.txt"
+
+lgem_num_modules = 2;
+lgem_num_layers = 2;
+
+lgem_module_names = "m0, m1"
+
+lgem_m0_layer = 0
+lgem_m1_layer = 1
+
+; APV mapping configurations: 0 = INFN, 1 = UVA X/Y, 2 = UVA U/V
+lgem_m0_apvmap = 1
+lgem_m1_apvmap = 1
+
+; Positions, all units in m
+lgem_m0_position = 0, 0, 0.75
+lgem_m1_position = 0, 0, 0.95
+
+; strip angles
+; X/Y are defined in lab coordinate system 
+lgem_m0_uangle = 0.0
+lgem_m0_vangle = 90.0
+
+lgem_m1_uangle = 0.0
+lgem_m1_vangle = 90.0
+
+; Number of strips
+;lgem_m0_nstripsu = 3072
+;lgem_m0_nstripsv = 1536
+;lgem_m1_nstripsu = 3072
+;lgem_m1_nstripsv = 1536
+lgem_m0_nstripsv = 3072
+lgem_m0_nstripsu = 1536
+lgem_m1_nstripsv = 3072
+lgem_m1_nstripsu = 1536
+
+; all modules have the same strip pitch along both dimensions, 0.4 mm:
+lgem_upitch = 0.0004
+lgem_vpitch = 0.0004
