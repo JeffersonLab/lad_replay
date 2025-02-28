@@ -1,0 +1,55 @@
+# block L.gem.*
+block L.gem.clust*
+block L.gem.hit*
+block L.gem.trk*
+
+# Cuts:
+cut singletrack L.gem.trk.ntracks==1
+cut anytrack L.gem.trk.ntracks>0
+
+# histos
+TH1D h1_gem_Nlayers_hit 'Number of layers with fired strips (X or Y)' L.gem.hit.nlayer 3 -0.5 2.5
+TH1D h1_gem_Nlayers_hitu 'Number of layers with fired X strips' L.gem.hit.nlayeru 3 -0.5 2.5
+TH1D h1_gem_Nlayers_hitv 'Number of layers with fired Y strips' L.gem.hit.nlayerv 3 -0.5 2.5
+TH1D h1_gem_Nlayers_hituv 'Number of layers with 2D hits' L.gem.hit.nlayeruv 3 -0.5 2.5
+
+TH2D h2_gem_NstripsU_layer 'Number of X strips fired; layer; Number of strips fired' [I] L.gem.hit.nstripsu_layer[I] 2 -0.5 1.5 2001 -0.5 2000.5
+TH2D h2_gem_NstripsV_layer 'Number of Y strips fired; layer; Number of strips fired' [I] L.gem.hit.nstripsv_layer[I] 2 -0.5 1.5 4001 -0.5 4000.5
+TH2D h2_gem_NclustU_layer 'Number of X clusters; layer; Number of clusters' [I] L.gem.hit.nclustu_layer[I] 2 -0.5 1.5 101 -0.5 100.5
+TH2D h2_gem_NclustV_layer 'Number of Y clusters; layer; Number of clusters' [I] L.gem.hit.nclustv_layer[I] 2 -0.5 1.5 101 -0.5 100.5
+
+# cluster plots
+TH1D h1_gem_clustWidthU_0 'X cluster size Layer 0; cluster size' L.gem.clust.nstrip[I] 10 0.5 10.5 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustWidthV_0 'Y cluster size Layer 0; cluster size' L.gem.clust.nstrip[I] 10 0.5 10.5 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustWidthU_1 'X cluster size Layer 1; cluster size' L.gem.clust.nstrip[I] 10 0.5 10.5 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustWidthV_1 'Y cluster size Layer 1; cluster size' L.gem.clust.nstrip[I] 10 0.5 10.5 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustSampMaxU_0 'Peak time sample Layer 0; Peak time sample (X strip)' L.gem.clust.maxsamp[I] 6 -0.5 5.5 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustSampMaxV_0 'Peak time sample Layer 0; Peak time sample (Y strip)' L.gem.clust.maxsamp[I] 6 -0.5 5.5 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustSampMaxU_1 'Peak time sample Layer 1; Peak time sample (X strip)' L.gem.clust.maxsamp[I] 6 -0.5 5.5 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustSampMaxV_1 'Peak time sample Layer 1; Peak time sample (Y strip)' L.gem.clust.maxsamp[I] 6 -0.5 5.5 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustADCMaxU_0 'X cluster Max strip ADC Layer 0; MAX strip ADC' L.gem.clust.maxadc[I] 1500 0 1500 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustADCMaxV_0 'Y cluster Max strip ADC Layer 0; MAX strip ADC' L.gem.clust.maxadc[I] 1500 0 1500 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustADCMaxU_1 'X cluster Max strip ADC Layer 1; MAX strip ADC' L.gem.clust.maxadc[I] 1500 0 1500 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustADCMaxV_1 'Y cluster Max strip ADC Layer 1; MAX strip ADC' L.gem.clust.maxadc[I] 1500 0 1500 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustADCSumU_0 'X cluster ADC sum Layer 0; ADC sum' L.gem.clust.adc[I] 1500 0 3000 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustADCSumV_0 'Y cluster ADC sum Layer 0; ADC sum' L.gem.clust.adc[I] 1500 0 3000 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]<1
+TH1D h1_gem_clustADCSumU_1 'X cluster ADC sum Layer 1; ADC sum' L.gem.clust.adc[I] 1500 0 3000 L.gem.clust.axis[I]<1&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustADCSumV_1 'Y cluster ADC sum Layer 1; ADC sum' L.gem.clust.adc[I] 1500 0 3000 L.gem.clust.axis[I]>0&&L.gem.clust.layer[I]>0
+TH1D h1_gem_clustTimeMeanU_0 'Cluster time 0' L.gem.clust.adc[I] 6 -0.5 5.5 L.gem.clust.axis[I]==0&&L.gem.clust.layer[I]==0
+TH1D h1_gem_clustTimeMeanV_0 'Cluster time 0' L.gem.clust.adc[I] 6 -0.5 5.5 L.gem.clust.axis[I]==1&&L.gem.clust.layer[I]==0
+TH1D h1_gem_clustTimeMeanU_1 'Cluster time 1' L.gem.clust.adc[I] 6 -0.5 5.5 L.gem.clust.axis[I]==0&&L.gem.clust.layer[I]==1
+TH1D h1_gem_clustTimeMeanV_1 'Cluster time 1' L.gem.clust.adc[I] 6 -0.5 5.5 L.gem.clust.axis[I]==1&&L.gem.clust.layer[I]==1
+
+# tracks
+TH1D h1_gem_ntracks 'Number of track candidates; N tracks found' L.gem.trk.ntracks 20 -0.5 19.5 
+TH2D h2_gem_2dhit_0 'Layer 0 XY space points (2Dhits); x; y' L.gem.trk.y1 L.gem.trk.x1 100 -1 1 100 -1 1
+TH2D h2_gem_2dhit_1 'Layer 1 XY space points (2Dhits); x; y' L.gem.trk.y2 L.gem.trk.x2 100 -1 1 100 -1 1
+TH1D h1_gem_track_t 'Time mean; Avg. time' L.gem.trk.t 100 0 100
+TH1D h1_gem_track_dt 'Time difference; dt' L.gem.trk.dt 100 -10 10
+TH1D h1_gem_track_d0 'Track DCA; DCA' L.gem.trk.d0 150 0 1.5
+
+# Strip hitmap
+TH1D h1_gem_stripsfiredU_m0 'Layer 0 X Strip hit map' L.gem.m0.strip.istrip[I] 1536 -0.5 1535.5 L.gem.m0.strip.IsU[I]
+TH1D h1_gem_stripsfiredV_m0 'Layer 0 Y Strip hit map' L.gem.m0.strip.istrip[I] 3072 -0.5 3071.5 L.gem.m0.strip.IsV[I]
+TH1D h1_gem_stripsfiredU_m1 'Layer 1 X Strip hit map' L.gem.m1.strip.istrip[I] 1536 -0.5 1535.5 L.gem.m1.strip.IsU[I]
+TH1D h1_gem_stripsfiredV_m1 'Layer 1 Y Strip hit map' L.gem.m1.strip.istrip[I] 3072 -0.5 3071.5 L.gem.m1.strip.IsV[I]
