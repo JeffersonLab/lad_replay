@@ -1,11 +1,11 @@
-#include "MultiFileRun.h"
 #include "LADFilteredStreamBuf.h"
+#include "MultiFileRun.h"
 #include <iostream>
 
 // #include "../../LAD/LAD_link_defs.h" //Leave this line commented. Used for debugging purposes only.
 
 void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, int FirstEvent = 1,
-                                int MaxSegment = 1, int FirstSegment = 0, const char *fname_prefix = "shms_all") {
+                              int MaxSegment = 1, int FirstSegment = 0, const char *fname_prefix = "shms_all") {
 
   // Get RunNumber and MaxEvent if not provided.
   if (RunNumber == 0) {
@@ -48,8 +48,8 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
   TString ROOTFileName;
   pathList.push_back("/volatile/hallc/c-lad/ehingerl/raw_data/LAD_cosmic");
   ROOTFileNamePattern = "ROOTfiles/LAD_COIN/PRODUCTION//SPEC_ONLY_%d_%d.root";
-  //ROOTFileNamePattern = "ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_production_hall_%d_%d.root";
-  //ROOTFileNamePattern = "ROOTfiles/LAD_COIN/CALIBRATION/LAD_COIN_calibration_hall_%d_%d.root";
+  // ROOTFileNamePattern = "ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_production_hall_%d_%d.root";
+  // ROOTFileNamePattern = "ROOTfiles/LAD_COIN/CALIBRATION/LAD_COIN_calibration_hall_%d_%d.root";
   switch (run_type) {
   case 0:
     RunFileNamePattern = "lad_Production_%02d.dat.0";
@@ -84,10 +84,9 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
 
   //(CA)
   TString REPORTFileName;
-  REPORTFileNamePattern  = "REPORT_OUTPUT/LAD_COIN/PRODUCTION/replayReport_LAD_coin_production_%d_%d_%d.report";
-  REPORTFileName  = Form(REPORTFileNamePattern, RunNumber, FirstEvent, MaxEvent);
+  REPORTFileNamePattern = "REPORT_OUTPUT/LAD_COIN/PRODUCTION/replayReport_LAD_coin_production_%d_%d_%d.report";
+  REPORTFileName        = Form(REPORTFileNamePattern, RunNumber, FirstEvent, MaxEvent);
 
-  
   // LHE. End temp.
   //  Many experiments use separate path for each spectrometer SHMS, HMS, COIN
   //  There are subdirectories for PRODUCTION, SCALER, 50K, etc.
@@ -143,10 +142,10 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
   // Load the Hall C detector map
   // Load map depending on whether run is before or after SHMS DC swap
   gHcDetectorMap = new THcDetectorMap();
-  if (RunNumber<22157)
+  if (RunNumber < 22157)
     gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad.map");
   else
-     gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad_5pass.map");
+    gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad_5pass.map");
 
   // Add the dec data class for debugging
   // Podd::DecData *decData = new Podd::DecData("D", "Decoder Raw Data");
@@ -162,11 +161,16 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
 
   // Add trigger detector to trigger apparatus
   THcTrigDet *shms = new THcTrigDet("shms", "SHMS Trigger Information");
-  //shms->SetSpectName("P");
+  // shms->SetSpectName("P");
   TRG->AddDetector(shms);
 
   // Set up the equipment to be analyzed
   THcHallCSpectrometer *SHMS = new THcHallCSpectrometer("P", "SHMS");
+  SHMS->SetEvtType(1);
+  SHMS->AddEvtType(4);
+  SHMS->AddEvtType(5);
+  SHMS->AddEvtType(6);
+  SHMS->AddEvtType(7);
   gHaApps->Add(SHMS);
   // Add Noble Gas Cherenkov to SHMS apparatus
   THcCherenkov *ngcer = new THcCherenkov("ngcer", "Noble Gas Cherenkov");
@@ -228,10 +232,15 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
   //      HMS
   //////////////////////////////////////////////////////////////////////////
   THcTrigDet *hms = new THcTrigDet("hms", "HMS Trigger Information");
-  //hms->SetSpectName("H");
+  // hms->SetSpectName("H");
   TRG->AddDetector(hms);
 
   THcHallCSpectrometer *HMS = new THcHallCSpectrometer("H", "HMS");
+  HMS->SetEvtType(2);
+  HMS->AddEvtType(4);
+  HMS->AddEvtType(5);
+  HMS->AddEvtType(6);
+  HMS->AddEvtType(7);
   gHaApps->Add(HMS);
   // Add drift chambers to HMS apparatus
   THcDC *hdc = new THcDC("dc", "Drift Chambers");
@@ -289,8 +298,8 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
   hscaler->AddEvtType(2);
   hscaler->AddEvtType(3);
   hscaler->AddEvtType(4);
-  hscaler->AddEvtType(129);
-  hscaler->SetDelayedType(129);
+  hscaler->AddEvtType(131);
+  hscaler->SetDelayedType(131);
   hscaler->SetUseFirstEvent(kTRUE);
   gHaEvtHandlers->Add(hscaler);
 
