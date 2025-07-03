@@ -162,7 +162,7 @@ void replay_lad_scalar(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, in
   gHaApps->Add(HMS);
 
   // Add event handler for EPICS events
-  THaEpicsEvtHandler *hcepics = new THaEpicsEvtHandler("epics", "HC EPICS event type 181");
+  THaEpicsEvtHandler *hcepics = new THaEpicsEvtHandler("epics", "HC EPICS event type 182");
   gHaEvtHandlers->Add(hcepics);
   // Add event handler for scaler events
   THcScalerEvtHandler *hscaler = new THcScalerEvtHandler("H", "Hall C scaler event type 1");
@@ -182,7 +182,7 @@ void replay_lad_scalar(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, in
   // tests/cuts, loops over Acpparatus's and PhysicsModules,
   // and executes the output routines.
   THcAnalyzer *analyzer = new THcAnalyzer;
-
+  // analyzer->EnablePhysicsEvents(kFALSE); // Disable physics events, only scalers and control events
   // A simple event class to be output to the resulting tree.
   // Creating your own descendant of THaEvent is one way of
   // defining and controlling the output.
@@ -227,7 +227,7 @@ void replay_lad_scalar(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, in
                              // 2 = counter is event number
   analyzer->SetEvent(event);
   // Set EPICS event type
-  analyzer->SetEpicsEvtType(181);
+  analyzer->SetEpicsEvtType(182);
   // Define crate map
   analyzer->SetCrateMapFileName("MAPS/db_cratemap.dat");
   // analyzer->SetCrateMapFileName("MAPS/db_cratemap_lad.dat");// Temp set it to only LAD to avoid error
