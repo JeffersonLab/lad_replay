@@ -42,8 +42,10 @@ void load_GEM_CM_PED(int runNumber) {
     }
   }
 
-  gHcParms->AddString("lgem_pedfile", Form("PARAM/LAD/GEM/PED/gem_ped_%d.dat", ped_cm_file_num));
-  gHcParms->AddString("lgem_cmfile", Form("PARAM/LAD/GEM/CM/CommonModeRange_%d.txt", ped_cm_file_num));
+  //gHcParms->AddString("lgem_pedfile", Form("PARAM/LAD/GEM/PED/gem_ped_%d.dat", ped_cm_file_num));
+  gHcParms->AddString("lgem_pedfile", Form("PARAM/LAD/GEM/PED/daq_ped_L_gem_run%d.dat", ped_cm_file_num));
+  gHcParms->AddString("lgem_cmfile", Form("PARAM/LAD/GEM/CM/db_cmr_L_gem_run%d.dat", ped_cm_file_num));
+  //gHcParms->AddString("lgem_cmfile", Form("PARAM/LAD/GEM/CM/CommonModeRange_%d.txt", ped_cm_file_num));
   return;
 }
 
