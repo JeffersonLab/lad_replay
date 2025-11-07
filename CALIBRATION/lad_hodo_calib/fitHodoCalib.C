@@ -12,6 +12,7 @@
 #include <TDecompSVD.h>
 #include <TF1.h>
 #include <TGraph.h>
+#include <TGraphErrors.h>
 #include <TH2.h>
 #include <TLegend.h>
 #include <TLine.h>
@@ -34,15 +35,16 @@
 
 using namespace std;
 
-const static double TdcTimeTWCorr_MAX = 10000.0; // Was originally 100.
-const static int minADC_PulseAmp = 50; // Minimum ADC Pulse Amplitude to consider for Time Walk correction
+const static double TdcTimeTWCorr_MAX = 100000.0; // Was originally 100.
+const static double AdcTimeTWCorr_MAX = 100000.0;
+const static int minADC_PulseAmp      = 40; // Minimum ADC Pulse Amplitude to consider for Time Walk correction
 
-// void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
-void fitHodoCalib(Int_t runNUM) {
+void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
+  // void fitHodoCalib(Int_t runNUM) {
 
   gROOT->SetBatch(kTRUE);
   // TString filename = Form("../../ROOTfiles/COSMICS/LAD_wREF_cosmic_hall_%d_-1.root", runNUM);
-  TString filename = Form("../../ROOTfiles/COSMICS/LAD_wGEM_cosmic_hall_%d_-1.root", runNUM);
+  // TString filename = Form("../../ROOTfiles/COSMICS/LAD_wGEM_cosmic_hall_%d_-1.root", runNUM);
 
   gStyle->SetOptFit();
   // gROOT->SetBatch(kTRUE); // do not display plots
@@ -68,9 +70,17 @@ void fitHodoCalib(Int_t runNUM) {
   Double_t lladhodo_cableArr[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo cableLength differences (y-int of line fit)
   Double_t lladhodo_LCoeff[NPLANES][MAX_PADDLES]   = {0.0}; // Variables to write out LCoeff. parameter file
   Double_t lladhodo_sigArr[NPLANES][MAX_PADDLES]   = {0.0}; // store hhodo sigma parameters
-  Double_t vp                                      = 30.0;  // speed of light [cm/ns]
-  Double_t paddle_vel_fit_max_threshold            = 0.1;   // 0-1 range, 0.1 = 10% threshold
-  Double_t barlength[NPLANES][MAX_PADDLES]         = {
+  Double_t lladhodo_sigArr_LCoeff[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo sigma parameters for LCoeff.
+  Double_t lladhodo_velArr_FADC[NPLANES][MAX_PADDLES]   = {
+      0.0}; // store hhodo velocity parameters (1/slope of the line fit) for FADC
+  Double_t lladhodo_cableArr_FADC[NPLANES][MAX_PADDLES] = {
+      0.0}; // store hhodo cableLength differences (y-int of line fit) for FADC
+  Double_t lladhodo_LCoeff_FADC[NPLANES][MAX_PADDLES] = {0.0}; // Variables to write out LCoeff. parameter file for FADC
+  Double_t lladhodo_sigArr_FADC[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo sigma parameters for FADC
+  Double_t lladhodo_sigArr_LCoeff_FADC[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo sigma parameters for FADC
+  Double_t vp                                                = 30.0;  // speed of light [cm/ns]
+  Double_t paddle_vel_fit_max_threshold                      = 0.1;   // 0-1 range, 0.1 = 10% threshold
+  Double_t barlength[NPLANES][MAX_PADDLES]                   = {
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1},
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1},
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1},
@@ -78,6 +88,7 @@ void fitHodoCalib(Int_t runNUM) {
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1},
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1}};
 
+  // Plotting parameters
   static const Int_t TDC_T_NBINS         = 1000;
   static const Double_t TDC_T_MIN        = -60.0;
   static const Double_t TDC_T_MAX        = 60.0;
@@ -87,6 +98,9 @@ void fitHodoCalib(Int_t runNUM) {
   static const Int_t DiffTime_NBINS      = 1000;
   static const Double_t DiffTime_MIN     = -40.0;
   static const Double_t DiffTime_MAX     = 40.0;
+  static const Int_t FADC_T_NBINS        = 1000;
+  static const Double_t FADC_T_MIN       = -60.0;
+  static const Double_t FADC_T_MAX       = 60.0;
   /******Define Leafs to be read from TTree******/
 
   //---Names---
@@ -127,28 +141,36 @@ void fitHodoCalib(Int_t runNUM) {
 
   // //----Canvas----
   TCanvas *TWAvg_canv[NPLANES];
+  TCanvas *TWAvg_canv_FADC[NPLANES];
   TCanvas *TWAvg_canv_2D[NPLANES];
   TCanvas *TWDiff_canv[NPLANES];
+  TCanvas *TWDiff_canv_FADC[NPLANES];
 
   TCanvas *TWUnCorr_canv[NPLANES][SIDES];
   TCanvas *TWCorr_canv[NPLANES][SIDES];
+  TCanvas *TWCorr_canv_FADC[NPLANES][SIDES];
 
   TCanvas *TWCorr_BarLCoef[NPLANES];
-
+  TCanvas *TWCorr_BarLCoef_FADC[NPLANES];
   // //----Histograms----
   TH1F *h1Hist_TWAvg[NPLANES][MAX_PADDLES];     // (TWCorr_Top + TWCorr_Btm) / 2       <-------
   TH1F *h1Hist_TWAvg_CUT[NPLANES][MAX_PADDLES]; //<------
   TH1F *h1Hist_TWDiff[NPLANES][MAX_PADDLES];    // (TWCorr_Top - TWCorr_Btm) / 2       <-------
 
+  TH1F *h1Hist_TWAvg_FADC[NPLANES][MAX_PADDLES];     // (TWCorr_Top + TWCorr_Btm) / 2 for FADC      <-------
+  TH1F *h1Hist_TWAvg_CUT_FADC[NPLANES][MAX_PADDLES]; //<------
+  TH1F *h1Hist_TWDiff_FADC[NPLANES][MAX_PADDLES];    // (TWCorr_Top - TWCorr_Btm) / 2 for FADC      <-------
+
   TH2F *h2Hist_TW_UnCorr[NPLANES][SIDES][MAX_PADDLES]; // Time-Walk Uncorrected vs. ADC Pulse Amp Hist
   TH2F *h2Hist_TW_Corr[NPLANES][SIDES][MAX_PADDLES];   // Time-Walk Corrected vs. ADC Pulse Amp Hist
 
-  TH1F *h1Hist_TWCorr_BarLCoef[NPLANES][MAX_PADDLES]; // Time-Walk Corrected vs. ADC Pulse Amp Hist
+  TH1F *h1Hist_TWCorr_BarLCoef[NPLANES][MAX_PADDLES];
+  TH1F *h1Hist_TWCorr_BarLCoef_FADC[NPLANES][MAX_PADDLES];
   // /*******Define Fit Functions and Related Variables*******/
 
-  Double_t Mean;   // variable to get Mean to make a 3sig cut
-  Double_t StdDev; // variable to get satndar deviation to make a 3sig cut
-  Double_t nSig;   // multiple of Sigma used for sigmaCut
+  Double_t Mean, mean_FADC;     // variable to get Mean to make a 3sig cut
+  Double_t StdDev, StdDev_FADC; // variable to get satndar deviation to make a 3sig cut
+  Double_t nSig, nSig_FADC;     // multiple of Sigma used for sigmaCut
 
   /********Initialize HISTOS and GET TTREE VARIABLES*********/
 
@@ -182,34 +204,6 @@ void fitHodoCalib(Int_t runNUM) {
         h2Hist_TW_Corr[npl][side][ipmt]->GetXaxis()->SetTitle("ADC Pulse Amplitude (mV)");
         h2Hist_TW_Corr[npl][side][ipmt]->GetXaxis()->CenterTitle();
 
-        if (side == 0) // require ONLY one side, since a time diff between two pmts at each end is taken
-        {
-          h1Hist_TWAvg[npl][ipmt] =
-              new TH1F(Form("Avg. Time: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
-                       Form("Paddle %s%d: Time-Walk Corrected Average Time", pl_names[npl].Data(), ipmt + 1),
-                       TDC_T_NBINS, TDC_T_MIN, TDC_T_MAX);
-
-          h1Hist_TWAvg_CUT[npl][ipmt] =
-              new TH1F(Form("Avg. Time CUT: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
-                       Form("Paddle %s%d: Time-Walk Corrected Average (CUT)", pl_names[npl].Data(), ipmt + 1),
-                       TDC_T_NBINS, TDC_T_MIN, TDC_T_MAX);
-
-          h1Hist_TWDiff[npl][ipmt] = new TH1F(
-              Form("Diff. Time: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
-              Form("Paddle %s%d: Time-Walk Corrected Difference Time (Top - Btm)", pl_names[npl].Data(), ipmt + 1),
-              DiffTime_NBINS, DiffTime_MIN, DiffTime_MAX);
-
-          // Set Axis Titles
-          h1Hist_TWAvg[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. TDC Average Paddle Time (ns)");
-          h1Hist_TWAvg_CUT[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. TDC Average Paddle Time (ns)");
-
-          h1Hist_TWAvg[npl][ipmt]->GetXaxis()->CenterTitle();
-          h1Hist_TWAvg_CUT[npl][ipmt]->GetXaxis()->CenterTitle();
-
-          h2Hist_TW_UnCorr[npl][side][ipmt]->GetYaxis()->SetTitle("Time Walk UnCorr.(TDC - ADC) Pulse Time (ns)");
-          h2Hist_TW_UnCorr[npl][side][ipmt]->GetXaxis()->SetTitle("ADC Pulse Amplitude (mV)");
-        } // end require SINGLE side requirement
-
         //----Define TTree Leaf Names-----
         base = spec + "." + det + "." + pl_names[npl];
 
@@ -229,6 +223,87 @@ void fitHodoCalib(Int_t runNUM) {
     } // end loop over hodo side
 
   } // end loop over hodo planes
+
+  // Get the average value of the branch with the name nTdcTimeTWCorr (first 100 entries only)
+  double tdc_avg           = 0.0;
+  double sum_TdcTimeTWCorr = 0.0;
+  int count_TdcTimeTWCorr  = 0;
+  double sum_AdcPulseTime  = 0.0;
+  int count_AdcPulseTime   = 0;
+  Long64_t nAvgEntries     = std::min((Long64_t)100, T->GetEntries());
+  for (Long64_t i = 0; i < nAvgEntries; i++) {
+    T->GetEntry(i);
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      for (Int_t side = 0; side < SIDES; side++) {
+        for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
+          if (TdcTimeTWCorr[npl][side][ipmt] < TdcTimeTWCorr_MAX) {
+            sum_TdcTimeTWCorr += TdcTimeTWCorr[npl][side][ipmt];
+            ++count_TdcTimeTWCorr;
+          }
+          if (AdcPulseTime[npl][side][ipmt] < AdcTimeTWCorr_MAX) {
+            sum_AdcPulseTime += AdcPulseTime[npl][side][ipmt];
+            ++count_AdcPulseTime;
+          }
+        }
+      }
+    }
+  }
+  double avg_TdcTimeTWCorr = (count_TdcTimeTWCorr > 0) ? (sum_TdcTimeTWCorr / count_TdcTimeTWCorr) : 0.0;
+  double avg_AdcPulseTime  = (count_AdcPulseTime > 0) ? (sum_AdcPulseTime / count_AdcPulseTime) : 0.0;
+  cout << "Average value of nTdcTimeTWCorr (first 100 entries): " << avg_TdcTimeTWCorr << endl;
+  cout << "Average value of AdcPulseTime (first 100 entries): " << avg_AdcPulseTime << endl;
+
+  // Create 1D histograms for TWAvg, TWAvg_CUT, and TWDiff for each plane and paddle (side == 0)
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
+      h1Hist_TWAvg[npl][ipmt] =
+          new TH1F(Form("Avg. Time: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
+                   Form("Paddle %s%d: Time-Walk Corrected Average Time", pl_names[npl].Data(), ipmt + 1), TDC_T_NBINS,
+                   TDC_T_MIN + avg_TdcTimeTWCorr, TDC_T_MAX + avg_TdcTimeTWCorr);
+
+      h1Hist_TWAvg_CUT[npl][ipmt] =
+          new TH1F(Form("Avg. Time CUT: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
+                   Form("Paddle %s%d: Time-Walk Corrected Average (CUT)", pl_names[npl].Data(), ipmt + 1), TDC_T_NBINS,
+                   TDC_T_MIN + avg_TdcTimeTWCorr, TDC_T_MAX + avg_TdcTimeTWCorr);
+
+      h1Hist_TWDiff[npl][ipmt] =
+          new TH1F(Form("Diff. Time: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
+                   Form("Paddle %s%d: Time-Walk Corrected Difference Time (Top - Btm)", pl_names[npl].Data(), ipmt + 1),
+                   DiffTime_NBINS, DiffTime_MIN, DiffTime_MAX);
+
+      // Set Axis Titles
+      h1Hist_TWAvg[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. TDC Average Paddle Time (ns)");
+      h1Hist_TWAvg_CUT[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. TDC Average Paddle Time (ns)");
+
+      h1Hist_TWAvg[npl][ipmt]->GetXaxis()->CenterTitle();
+      h1Hist_TWAvg_CUT[npl][ipmt]->GetXaxis()->CenterTitle();
+
+      // Initialize FADC 1D histograms analogous to the TDC ones, using FADC average time instead of TDC avg
+      h1Hist_TWAvg_FADC[npl][ipmt] =
+          new TH1F(Form("Avg. Time FADC: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
+                   Form("Paddle %s%d: FADC Time-Walk Corrected Average Time", pl_names[npl].Data(), ipmt + 1),
+                   FADC_T_NBINS, FADC_T_MIN + avg_AdcPulseTime, FADC_T_MAX + avg_AdcPulseTime);
+
+      h1Hist_TWAvg_CUT_FADC[npl][ipmt] =
+          new TH1F(Form("Avg. Time CUT FADC: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
+                   Form("Paddle %s%d: FADC Time-Walk Corrected Average (CUT)", pl_names[npl].Data(), ipmt + 1),
+                   FADC_T_NBINS, FADC_T_MIN + avg_AdcPulseTime, FADC_T_MAX + avg_AdcPulseTime);
+
+      h1Hist_TWDiff_FADC[npl][ipmt] = new TH1F(
+          Form("Diff. Time FADC: Paddle %s%d", pl_names[npl].Data(), ipmt + 1),
+          Form("Paddle %s%d: FADC Time-Walk Corrected Difference Time (Top - Btm)", pl_names[npl].Data(), ipmt + 1),
+          DiffTime_NBINS, DiffTime_MIN, DiffTime_MAX);
+
+      // Set axis titles and center them
+      h1Hist_TWAvg_FADC[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. FADC Average Paddle Time (ns)");
+      h1Hist_TWAvg_CUT_FADC[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. FADC Average Paddle Time (ns)");
+      h1Hist_TWDiff_FADC[npl][ipmt]->GetXaxis()->SetTitle("Time-Walk Corr. FADC Difference Time (Top - Btm)");
+
+      h1Hist_TWAvg_FADC[npl][ipmt]->GetXaxis()->CenterTitle();
+      h1Hist_TWAvg_CUT_FADC[npl][ipmt]->GetXaxis()->CenterTitle();
+      h1Hist_TWDiff_FADC[npl][ipmt]->GetXaxis()->CenterTitle();
+    }
+  }
 
   //**************************************************************//
   // FIRST PASS OF EVENT LOOP (Get the StdDev) of (TDC+ + TDC-)/2 //
@@ -256,6 +331,11 @@ void fitHodoCalib(Int_t runNUM) {
 
         } // end time cut
 
+        if (AdcPulseTime[npl][0][ipmt] < AdcTimeTWCorr_MAX && AdcPulseTime[npl][1][ipmt] < AdcTimeTWCorr_MAX) {
+          // Fill Average TW Corr FADC Time
+          h1Hist_TWAvg_FADC[npl][ipmt]->Fill((AdcPulseTime[npl][0][ipmt] + AdcPulseTime[npl][1][ipmt]) / 2.);
+        }
+
       } // end pmt loop
 
     } // end plane loop
@@ -265,7 +345,7 @@ void fitHodoCalib(Int_t runNUM) {
   } // end loop over entries
 
   // Set cut on Sigma,
-  nSig = 1;
+  nSig = nSig_FADC = 1;
 
   //************************************//
   //    SECOND PASS OF EVENT LOOP       //
@@ -290,6 +370,9 @@ void fitHodoCalib(Int_t runNUM) {
           // Get Standard deviation from initial entry fill
           StdDev = h1Hist_TWAvg[npl][ipmt]->GetStdDev();
           Mean   = h1Hist_TWAvg[npl][ipmt]->GetMean();
+          // Get Standard deviation from initial entry fill for FADC
+          StdDev_FADC = h1Hist_TWAvg_FADC[npl][ipmt]->GetStdDev();
+          mean_FADC   = h1Hist_TWAvg_FADC[npl][ipmt]->GetMean();
 
           // FIll Uncorrected/Corrected Time Walk Histos
           h2Hist_TW_UnCorr[npl][side][ipmt]->Fill(AdcPulseAmp[npl][side][ipmt],
@@ -314,6 +397,17 @@ void fitHodoCalib(Int_t runNUM) {
 
           } // end time cuts
 
+          // Repeat analogous cuts/fills for FADC
+          if (AdcPulseTime[npl][0][ipmt] < AdcTimeTWCorr_MAX && AdcPulseTime[npl][1][ipmt] < AdcTimeTWCorr_MAX) {
+            if (side == 0) {
+              Double_t avgFADC = (AdcPulseTime[npl][0][ipmt] + AdcPulseTime[npl][1][ipmt]) / 2.0;
+              if (avgFADC > (mean_FADC - nSig_FADC * StdDev_FADC) && avgFADC < (mean_FADC + nSig_FADC * StdDev_FADC)) {
+                h1Hist_TWAvg_CUT_FADC[npl][ipmt]->Fill(avgFADC);
+                h1Hist_TWDiff_FADC[npl][ipmt]->Fill((AdcPulseTime[npl][1][ipmt] - AdcPulseTime[npl][0][ipmt]) / 2.0);
+              }
+            }
+          }
+
         } // end pmt loop
 
       } // end side loop
@@ -329,13 +423,19 @@ void fitHodoCalib(Int_t runNUM) {
 
     // Create Canvas to store TW-Corr Time/Dist vs. trk position
     TWAvg_canv[npl] = new TCanvas(Form("TWAvg_%d", npl), Form("TWAvg, plane %s", pl_names[npl].Data()), 1000, 700);
+    TWAvg_canv_FADC[npl] =
+        new TCanvas(Form("TWAvgFADC_%d", npl), Form("TWAvg FADC, plane %s", pl_names[npl].Data()), 1000, 700);
     TWAvg_canv_2D[npl] =
         new TCanvas(Form("TWAvg2D_%d", npl), Form("TWAvg2D, plane %s", pl_names[npl].Data()), 1000, 700);
     TWDiff_canv[npl] = new TCanvas(Form("TWDiff_%d", npl), Form("TWDiff, plane %s", pl_names[npl].Data()), 1000, 700);
+    TWDiff_canv_FADC[npl] =
+        new TCanvas(Form("TWDiffFADC_%d", npl), Form("TWDiff FADC, plane %s", pl_names[npl].Data()), 1000, 700);
 
     if (npl < 5) {
       TWAvg_canv[npl]->Divide(4, 3);
+      TWAvg_canv_FADC[npl]->Divide(4, 3);
       TWDiff_canv[npl]->Divide(4, 3);
+      TWDiff_canv_FADC[npl]->Divide(4, 3);
       TWAvg_canv_2D[npl]->Divide(4, 3);
     }
 
@@ -349,10 +449,14 @@ void fitHodoCalib(Int_t runNUM) {
           new TCanvas(Form("TWCorrCanv%d%d", npl, side),
                       Form("plane %s_%s", pl_names[npl].Data(), side_names[side].Data()), 1000, 700);
 
+      // TWCorr_canv_FADC[npl][side] =
+      //     new TCanvas(Form("TWCorrCanvFADC%d%d", npl, side),
+      //                 Form("FADC plane %s_%s", pl_names[npl].Data(), side_names[side].Data()), 1000, 700);
       // Divide Canvas
       if (npl < 5) {
         TWUnCorr_canv[npl][side]->Divide(4, 3);
         TWCorr_canv[npl][side]->Divide(4, 3);
+        // TWCorr_canv_FADC[npl][side]->Divide(4, 3);
       }
 
       // Loop over pmt
@@ -425,6 +529,71 @@ void fitHodoCalib(Int_t runNUM) {
           line_right->SetLineColor(kRed);
           line_right->SetLineStyle(2);
           line_right->Draw("same");
+
+          // Repeate above for FADC
+          // FADC: analogous processing to the TDC block above
+          lladhodo_cableArr_FADC[npl][ipmt] = h1Hist_TWDiff_FADC[npl][ipmt]->GetMean();
+          lladhodo_sigArr_FADC[npl][ipmt]   = h1Hist_TWDiff_FADC[npl][ipmt]->GetStdDev();
+
+          // Determine velocity bounds from FADC diff histogram peak width at threshold
+          double peak_fadc      = h1Hist_TWDiff_FADC[npl][ipmt]->GetMaximum();
+          int peak_bin_fadc     = h1Hist_TWDiff_FADC[npl][ipmt]->GetMaximumBin();
+          double threshold_fadc = paddle_vel_fit_max_threshold * peak_fadc;
+          int bin_left_fadc     = peak_bin_fadc;
+          int bin_right_fadc    = peak_bin_fadc;
+
+          // Move left until below threshold (or hit first bin)
+          while (bin_left_fadc > 1 && h1Hist_TWDiff_FADC[npl][ipmt]->GetBinContent(bin_left_fadc) > threshold_fadc) {
+            --bin_left_fadc;
+          }
+          double value_below_threshold_btm_fadc = h1Hist_TWDiff_FADC[npl][ipmt]->GetBinCenter(bin_left_fadc);
+
+          // Move right until below threshold (or hit last bin)
+          while (bin_right_fadc < h1Hist_TWDiff_FADC[npl][ipmt]->GetNbinsX() &&
+                 h1Hist_TWDiff_FADC[npl][ipmt]->GetBinContent(bin_right_fadc) > threshold_fadc) {
+            ++bin_right_fadc;
+          }
+          double value_below_threshold_top_fadc = h1Hist_TWDiff_FADC[npl][ipmt]->GetBinCenter(bin_right_fadc);
+
+          // Protect against zero division
+          double delta_fadc = value_below_threshold_top_fadc - value_below_threshold_btm_fadc;
+          if (fabs(delta_fadc) > 1e-6) {
+            lladhodo_velArr_FADC[npl][ipmt] = barlength[npl][ipmt] / delta_fadc;
+          } else {
+            lladhodo_velArr_FADC[npl][ipmt] = 0.0;
+          }
+
+          // Draw FADC average histos on the 2D/alternate canvas
+          TWAvg_canv_FADC[npl]->cd(ipmt + 1);
+          h1Hist_TWAvg_FADC[npl][ipmt]->SetLineColor(kBlue);
+          h1Hist_TWAvg_CUT_FADC[npl][ipmt]->SetLineColor(kMagenta);
+          h1Hist_TWAvg_FADC[npl][ipmt]->Draw();
+          h1Hist_TWAvg_CUT_FADC[npl][ipmt]->Draw("same");
+
+          // Draw FADC diff histogram and vertical lines on the TWDiff canvas
+          TWDiff_canv_FADC[npl]->cd(ipmt + 1);
+          h1Hist_TWDiff_FADC[npl][ipmt]->Draw();
+
+          // Vertical line at cable offset (FADC)
+          TLine *line_cable_fadc = new TLine(lladhodo_cableArr_FADC[npl][ipmt], 0, lladhodo_cableArr_FADC[npl][ipmt],
+                                             h1Hist_TWDiff_FADC[npl][ipmt]->GetMaximum());
+          line_cable_fadc->SetLineColor(kBlue);
+          line_cable_fadc->SetLineStyle(2);
+          line_cable_fadc->Draw("same");
+
+          // Lines at threshold-determined edges
+          TLine *line_left_fadc = new TLine(value_below_threshold_btm_fadc, 0, value_below_threshold_btm_fadc,
+                                            h1Hist_TWDiff_FADC[npl][ipmt]->GetMaximum());
+          line_left_fadc->SetLineColor(kGreen + 2);
+          line_left_fadc->SetLineStyle(2);
+          line_left_fadc->Draw("same");
+
+          TLine *line_right_fadc = new TLine(value_below_threshold_top_fadc, 0, value_below_threshold_top_fadc,
+                                             h1Hist_TWDiff_FADC[npl][ipmt]->GetMaximum());
+          line_right_fadc->SetLineColor(kGreen + 2);
+          line_right_fadc->SetLineStyle(2);
+          line_right_fadc->Draw("same");
+
         } // end single SIDE requirement
 
       } // end pmt loop
@@ -437,8 +606,25 @@ void fitHodoCalib(Int_t runNUM) {
   TCanvas *cableArr_canv = new TCanvas("cableArr_canv", "Cable Time Offsets per Paddle", 1000, 700);
   cableArr_canv->Divide(3, 2);
 
+  TCanvas *cableArr_FADC_canv = new TCanvas("cableArr_FADC_canv", "FADC Cable Time Offsets per Paddle", 1000, 700);
+  cableArr_FADC_canv->Divide(3, 2);
+
   for (Int_t npl = 0; npl < NPLANES; npl++) {
-    TGraph *g_CableArr = new TGraph(maxPMT[npl]);
+    // Build TGraphErrors for TDC cable offsets (analogous to FADC below)
+    Int_t npts = maxPMT[npl];
+    double *x  = new double[npts];
+    double *y  = new double[npts];
+    double *ex = new double[npts];
+    double *ey = new double[npts];
+
+    for (Int_t ipmt = 0; ipmt < npts; ++ipmt) {
+      x[ipmt]  = ipmt + 1;
+      y[ipmt]  = lladhodo_cableArr[npl][ipmt];
+      ex[ipmt] = 0.0;
+      ey[ipmt] = lladhodo_sigArr[npl][ipmt];
+    }
+
+    TGraphErrors *g_CableArr = new TGraphErrors(npts, x, y, ex, ey);
     g_CableArr->SetTitle(Form("Cable Time Offsets per Paddle for Plane %s", pl_names[npl].Data()));
     g_CableArr->GetXaxis()->SetTitle("Paddle Number");
     g_CableArr->GetYaxis()->SetTitle("Cable Time Offset (ns)");
@@ -449,22 +635,65 @@ void fitHodoCalib(Int_t runNUM) {
     double maxY = *max_element(lladhodo_cableArr[npl], lladhodo_cableArr[npl] + maxPMT[npl]);
     g_CableArr->GetYaxis()->SetRangeUser(minY - 1, maxY + 1); // Adjust y range
 
-    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
-      g_CableArr->SetPoint(ipmt, ipmt + 1, lladhodo_cableArr[npl][ipmt]);
-    }
     cableArr_canv->cd(npl + 1);
-    g_CableArr->Draw("AP"); // Draw only points
+    g_CableArr->Draw("AP"); // draw axes and points with error bars
+
+    delete[] x;
+    delete[] y;
+    delete[] ex;
+    delete[] ey;
 
     // Draw a dashed line at y = 0
     TLine *line = new TLine(0, 0, maxPMT[npl] + 1, 0);
     line->SetLineColor(kBlack);
     line->SetLineStyle(2); // Dashed line
     line->Draw("same");
+
+    // Build arrays for TGraphErrors (x, y, ex, ey) so points have y error bars = sigArr_FADC
+    npts            = maxPMT[npl];
+    double *x_fadc  = new double[npts];
+    double *y_fadc  = new double[npts];
+    double *ex_fadc = new double[npts];
+    double *ey_fadc = new double[npts];
+
+    for (Int_t ipmt = 0; ipmt < npts; ipmt++) {
+      x_fadc[ipmt]  = ipmt + 1;
+      y_fadc[ipmt]  = lladhodo_cableArr_FADC[npl][ipmt];
+      ex_fadc[ipmt] = 0.0;                             // no x error
+      ey_fadc[ipmt] = lladhodo_sigArr_FADC[npl][ipmt]; // y error from sigArr_FADC
+    }
+
+    TGraphErrors *g_CableArr_FADC = new TGraphErrors(npts, x_fadc, y_fadc, ex_fadc, ey_fadc);
+    g_CableArr_FADC->SetTitle(Form("FADC Cable Time Offsets per Paddle for Plane %s", pl_names[npl].Data()));
+    g_CableArr_FADC->GetXaxis()->SetTitle("Paddle Number");
+    g_CableArr_FADC->GetYaxis()->SetTitle("Cable Time Offset (ns)");
+    g_CableArr_FADC->SetMarkerStyle(21);
+    g_CableArr_FADC->SetMarkerColor(kMagenta);
+
+    double minY_fadc = *min_element(lladhodo_cableArr_FADC[npl], lladhodo_cableArr_FADC[npl] + maxPMT[npl]);
+    double maxY_fadc = *max_element(lladhodo_cableArr_FADC[npl], lladhodo_cableArr_FADC[npl] + maxPMT[npl]);
+    g_CableArr_FADC->GetYaxis()->SetRangeUser(minY_fadc - 1, maxY_fadc + 1);
+
+    // cleanup temporary arrays
+    delete[] x_fadc;
+    delete[] y_fadc;
+    delete[] ex_fadc;
+    delete[] ey_fadc;
+    cableArr_canv->cd(npl + 1);
+    g_CableArr_FADC->Draw("Psame");
+
+    TLine *line_fadc = new TLine(0, 0, maxPMT[npl] + 1, 0);
+    line_fadc->SetLineColor(kBlack);
+    line_fadc->SetLineStyle(2);
+    line_fadc->Draw("same");
   }
 
   /***********DRAW CANVAS FOR lladhodo_velArr***************/
   TCanvas *velArr_canv = new TCanvas("velArr_canv", "Propagation Velocities per Paddle", 1000, 700);
   velArr_canv->Divide(3, 2);
+
+  TCanvas *velArr_FADC_canv = new TCanvas("velArr_FADC_canv", "FADC Propagation Velocities per Paddle", 1000, 700);
+  velArr_FADC_canv->Divide(3, 2);
 
   for (Int_t npl = 0; npl < NPLANES; npl++) {
     TGraph *g_VelArr = new TGraph(maxPMT[npl]);
@@ -483,6 +712,29 @@ void fitHodoCalib(Int_t runNUM) {
     }
     velArr_canv->cd(npl + 1);
     g_VelArr->Draw("AP"); // Draw only points
+
+    TGraph *g_VelArr_FADC = new TGraph(maxPMT[npl]);
+    g_VelArr_FADC->SetTitle(Form("FADC Propagation Velocities per Paddle for Plane %s", pl_names[npl].Data()));
+    g_VelArr_FADC->GetXaxis()->SetTitle("Paddle Number");
+    g_VelArr_FADC->GetYaxis()->SetTitle("Propagation Velocity (cm/ns)");
+    g_VelArr_FADC->SetMarkerStyle(21);
+    g_VelArr_FADC->SetMarkerColor(kBlue);
+
+    double minY_fadc = *min_element(lladhodo_velArr_FADC[npl], lladhodo_velArr_FADC[npl] + maxPMT[npl]);
+    double maxY_fadc = *max_element(lladhodo_velArr_FADC[npl], lladhodo_velArr_FADC[npl] + maxPMT[npl]);
+    g_VelArr_FADC->GetYaxis()->SetRangeUser(minY_fadc - 1, maxY_fadc + 1);
+
+    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
+      g_VelArr_FADC->SetPoint(ipmt, ipmt + 1, lladhodo_velArr_FADC[npl][ipmt]);
+    }
+    velArr_FADC_canv->cd(npl + 1);
+    g_VelArr_FADC->Draw("AP");
+
+    // Draw a dashed line at y = 0
+    TLine *line_fadc_zero = new TLine(0, 0, maxPMT[npl] + 1, 0);
+    line_fadc_zero->SetLineColor(kBlack);
+    line_fadc_zero->SetLineStyle(2);
+    line_fadc_zero->Draw("same");
   }
 
   /************WRITE FIT RESULTS TO PARAMETER FILE***************/
@@ -520,6 +772,31 @@ void fitHodoCalib(Int_t runNUM) {
     outPARAM << fixed << endl;
   }
 
+  // Also write FADC velocities
+  outPARAM << " " << endl;
+  outPARAM << " " << endl;
+  outPARAM << ";FADC Propagation Velocity Per Paddle" << endl;
+  outPARAM << "; ";
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    outPARAM << setw(16) << pl_names[npl] << " ";
+  }
+  outPARAM << endl;
+  outPARAM << "lladhodo_velFit_FADC = ";
+  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      if (npl == 0) {
+        if (ipmt == 0) {
+          outPARAM << lladhodo_velArr_FADC[npl][ipmt];
+        } else {
+          outPARAM << setw(26) << lladhodo_velArr_FADC[npl][ipmt];
+        }
+      } else {
+        outPARAM << ", " << setw(15) << lladhodo_velArr_FADC[npl][ipmt];
+      }
+    }
+    outPARAM << fixed << endl;
+  }
+
   outPARAM << " " << endl;
   outPARAM << " " << endl;
   outPARAM << " " << endl;
@@ -548,6 +825,31 @@ void fitHodoCalib(Int_t runNUM) {
     outPARAM << fixed << endl;
   }
 
+  // Also write FADC cable offsets
+  outPARAM << " " << endl;
+  outPARAM << " " << endl;
+  outPARAM << ";FADC PMTs Signal Cable Time Diff. Per Paddle" << endl;
+  outPARAM << "; ";
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    outPARAM << setw(16) << pl_names[npl] << " ";
+  }
+  outPARAM << endl;
+  outPARAM << "lladhodo_cableFit_FADC = ";
+  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      if (npl == 0) {
+        if (ipmt == 0) {
+          outPARAM << lladhodo_cableArr_FADC[npl][ipmt];
+        } else {
+          outPARAM << setw(26) << lladhodo_cableArr_FADC[npl][ipmt];
+        }
+      } else {
+        outPARAM << ", " << setw(15) << lladhodo_cableArr_FADC[npl][ipmt];
+      }
+    }
+    outPARAM << fixed << endl;
+  }
+
   outPARAM << " " << endl;
   outPARAM << " " << endl;
   outPARAM << " " << endl;
@@ -560,7 +862,7 @@ void fitHodoCalib(Int_t runNUM) {
   outPARAM << endl;
   outPARAM << "lladhodo_TopSigma = ";
 
-  // Write Sigma Parameters to file
+  // Write Sigma Parameters to file (TDC)
   for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
     for (Int_t npl = 0; npl < NPLANES; npl++) {
       if (npl == 0) {
@@ -580,7 +882,64 @@ void fitHodoCalib(Int_t runNUM) {
   outPARAM << " " << endl;
   outPARAM << "lladhodo_BtmSigma = ";
 
-  // Write Sigma Parameters to file
+  // Write Btm Sigma Parameters to file (use same array if separate not available)
+  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      if (npl == 0) {
+        if (ipmt == 0) {
+          outPARAM << lladhodo_sigArr[npl][ipmt];
+        } else {
+          outPARAM << setw(26) << lladhodo_sigArr[npl][ipmt];
+        }
+      } else {
+        outPARAM << ", " << setw(15) << lladhodo_sigArr[npl][ipmt];
+      }
+    }
+    outPARAM << fixed << endl;
+  }
+
+  // Also write FADC sigma parameters (Top & Btm)
+  outPARAM << " " << endl;
+  outPARAM << " " << endl;
+  outPARAM << ";FADC PMTs Time Diff. Sigma Parameters" << endl;
+  outPARAM << "; ";
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    outPARAM << setw(16) << pl_names[npl] << " ";
+  }
+  outPARAM << endl;
+  outPARAM << "lladhodo_TopSigma_FADC = ";
+  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      if (npl == 0) {
+        if (ipmt == 0) {
+          outPARAM << lladhodo_sigArr_FADC[npl][ipmt];
+        } else {
+          outPARAM << setw(26) << lladhodo_sigArr_FADC[npl][ipmt];
+        }
+      } else {
+        outPARAM << ", " << setw(15) << lladhodo_sigArr_FADC[npl][ipmt];
+      }
+    }
+    outPARAM << fixed << endl;
+  }
+
+  outPARAM << " " << endl;
+  outPARAM << " " << endl;
+  outPARAM << "lladhodo_BtmSigma_FADC = ";
+  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      if (npl == 0) {
+        if (ipmt == 0) {
+          outPARAM << lladhodo_sigArr_FADC[npl][ipmt];
+        } else {
+          outPARAM << setw(26) << lladhodo_sigArr_FADC[npl][ipmt];
+        }
+      } else {
+        outPARAM << ", " << setw(15) << lladhodo_sigArr_FADC[npl][ipmt];
+      }
+    }
+    outPARAM << fixed << endl;
+  }
 
   cout << "FINISHED Getting Vp and Cable Fits . . . " << endl;
   cout << "Starting the code to fit Hodo Matrix . . . " << endl;
@@ -594,6 +953,17 @@ void fitHodoCalib(Int_t runNUM) {
           new TH1F(Form("TWCorr_BarLCoef_%s%d", pl_names[npl].Data(), ipmt + 1),
                    Form("TWCorr_BarLCoef, plane %s, paddle %d", pl_names[npl].Data(), ipmt + 1), DiffTime_NBINS,
                    DiffTime_MIN, DiffTime_MAX);
+      // Define FADC version of the BarLCoef histogram (analogous to TDC one)
+      h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt] =
+          new TH1F(Form("TWCorr_BarLCoef_FADC_%s%d", pl_names[npl].Data(), ipmt + 1),
+                   Form("TWCorr_BarLCoef FADC, plane %s, paddle %d", pl_names[npl].Data(), ipmt + 1), DiffTime_NBINS,
+                   DiffTime_MIN, DiffTime_MAX);
+      // h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetXaxis()->SetTitle("FADC-corrected Δt (ns)");
+      // h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetYaxis()->SetTitle("Entries");
+      // h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetXaxis()->CenterTitle();
+      // h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetYaxis()->CenterTitle();
+      // h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->SetLineColor(kBlue);
+      // h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->SetFillColor(0);
     }
   }
   Double_t good_TW_top, good_TW_btm, good_TW_top_ref, good_TW_btm_ref;
@@ -617,8 +987,23 @@ void fitHodoCalib(Int_t runNUM) {
           h1Hist_TWCorr_BarLCoef[npl][ipmt]->Fill(((good_TW_top_ref + good_TW_btm_ref) - (good_TW_top + good_TW_btm)) /
                                                   2);
 
-        } // end time cut
+          // Fill FADC version of the BarLCoef histogram (analogous to TDC one)
+          if (AdcPulseTime[npl][0][ipmt] < AdcTimeTWCorr_MAX && AdcPulseTime[npl][1][ipmt] < AdcTimeTWCorr_MAX) {
+            Double_t good_FADC_top = AdcPulseTime[npl][0][ipmt];
+            Double_t good_FADC_btm =
+                AdcPulseTime[npl][1][ipmt] - 2 * lladhodo_cableArr_FADC[npl][ipmt]; // Apply cable time
+            // correction obtained from fits
+            Double_t good_FADC_top_ref = AdcPulseTime[refPlane][0][refBar];
+            Double_t good_FADC_btm_ref =
+                AdcPulseTime[refPlane][1][refBar] - 2 * lladhodo_cableArr_FADC[refPlane][refBar];
+            if (good_FADC_top_ref == 0) {
+              continue;
+            }
+            h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->Fill(
+                ((good_FADC_top_ref + good_FADC_btm_ref) - (good_FADC_top + good_FADC_btm)) / 2);
 
+          } // end time cut
+        }
       } // end pmt loop
 
     } // end plane loop
@@ -626,19 +1011,23 @@ void fitHodoCalib(Int_t runNUM) {
   } // end event loop
 
   // Loop through h1Hist_TWCorr_BarLCoef and fill the mean into lladhodo_LCoeff
-  double refBarTime = h1Hist_TWCorr_BarLCoef[refPlane][refBar]->GetMean();
+  double refBarTime     = h1Hist_TWCorr_BarLCoef[refPlane][refBar]->GetMean();
+  double refBarTimeFADC = h1Hist_TWCorr_BarLCoef_FADC[refPlane][refBar]->GetMean();
   for (Int_t npl = 0; npl < NPLANES; npl++) {
     for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
       // if (npl == refPlane && ipmt == refBar) {
       //   continue;
       // }
-      lladhodo_LCoeff[npl][ipmt] = (h1Hist_TWCorr_BarLCoef[npl][ipmt]->GetMean());
+      lladhodo_LCoeff[npl][ipmt]             = (h1Hist_TWCorr_BarLCoef[npl][ipmt]->GetMean());
+      lladhodo_sigArr_LCoeff[npl][ipmt]      = (h1Hist_TWCorr_BarLCoef[npl][ipmt]->GetStdDev());
+      lladhodo_LCoeff_FADC[npl][ipmt]        = (h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetMean());
+      lladhodo_sigArr_LCoeff_FADC[npl][ipmt] = (h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetStdDev());
     }
   }
   // Create Canvas to store TW-Corr Time/Dist vs. trk position
   for (Int_t npl = 0; npl < NPLANES; npl++) {
 
-    // Create Canvas
+    // Create Canvas for TDC BarLCoef
     TWCorr_BarLCoef[npl] = new TCanvas(Form("TWCorr_BarLCoef_%d", npl),
                                        Form("TWCorr_BarLCoef, plane %s", pl_names[npl].Data()), 1000, 700);
 
@@ -647,39 +1036,121 @@ void fitHodoCalib(Int_t runNUM) {
       TWCorr_BarLCoef[npl]->Divide(4, 3);
     }
 
+    // Create Canvas for FADC BarLCoef
+    TWCorr_BarLCoef_FADC[npl] = new TCanvas(Form("TWCorr_BarLCoef_FADC_%d", npl),
+                                            Form("TWCorr_BarLCoef FADC, plane %s", pl_names[npl].Data()), 1000, 700);
+    if (npl < 5) {
+      TWCorr_BarLCoef_FADC[npl]->Divide(4, 3);
+    }
+
     // Loop over pmt
     for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
 
+      // Draw TDC BarLCoef histogram
       TWCorr_BarLCoef[npl]->cd(ipmt + 1);
       h1Hist_TWCorr_BarLCoef[npl][ipmt]->Draw();
 
+      // Compute lladhodo_LCoeff relative to reference (TDC)
       lladhodo_LCoeff[npl][ipmt] =
           h1Hist_TWCorr_BarLCoef[npl][ipmt]->GetMean() - h1Hist_TWCorr_BarLCoef[refPlane][refBar]->GetMean();
+
+      // Draw FADC BarLCoef histogram
+      TWCorr_BarLCoef_FADC[npl]->cd(ipmt + 1);
+      h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->Draw();
+
+      // Compute lladhodo_LCoeff_FADC relative to reference (FADC)
+      lladhodo_LCoeff_FADC[npl][ipmt] =
+          h1Hist_TWCorr_BarLCoef_FADC[npl][ipmt]->GetMean() - h1Hist_TWCorr_BarLCoef_FADC[refPlane][refBar]->GetMean();
+
     } // end pmt loop
 
   } // end plane loop
 
-  /***********DRAW CANVAS FOR lladhodo_LCoeff***************/
-  TCanvas *LCoeff_canv = new TCanvas("LCoeff_canv", "Timing Corrections per Paddle", 1000, 700);
+  /***********DRAW CANVAS FOR lladhodo_LCoeff (TDC)***************/
+  TCanvas *LCoeff_canv = new TCanvas("LCoeff_canv", "Timing Corrections per Paddle (TDC)", 1000, 700);
   LCoeff_canv->Divide(3, 2);
 
   for (Int_t npl = 0; npl < NPLANES; npl++) {
-    TGraph *g_LCoeff = new TGraph(maxPMT[npl]);
-    g_LCoeff->SetTitle(Form("Timing Corrections per Paddle for Plane %s", pl_names[npl].Data()));
+    Int_t npts = maxPMT[npl];
+    double *x  = new double[npts];
+    double *y  = new double[npts];
+    double *ex = new double[npts];
+    double *ey = new double[npts];
+
+    for (Int_t ipmt = 0; ipmt < npts; ++ipmt) {
+      x[ipmt]  = ipmt + 1;
+      y[ipmt]  = lladhodo_LCoeff[npl][ipmt];
+      ex[ipmt] = 0.0;
+      ey[ipmt] = lladhodo_sigArr_LCoeff[npl][ipmt];
+    }
+
+    TGraphErrors *g_LCoeff = new TGraphErrors(npts, x, y, ex, ey);
+    g_LCoeff->SetTitle(Form("Timing Corrections per Paddle for Plane %s (TDC)", pl_names[npl].Data()));
     g_LCoeff->GetXaxis()->SetTitle("Paddle Number");
     g_LCoeff->GetYaxis()->SetTitle("Timing Correction (ns)");
-    g_LCoeff->SetMarkerStyle(20);   // Set marker style to points
-    g_LCoeff->SetMarkerColor(kRed); // Set marker color
+    g_LCoeff->SetMarkerStyle(20);
+    g_LCoeff->SetMarkerColor(kRed);
 
-    double minY = *min_element(lladhodo_LCoeff[npl], lladhodo_LCoeff[npl] + maxPMT[npl]);
-    double maxY = *max_element(lladhodo_LCoeff[npl], lladhodo_LCoeff[npl] + maxPMT[npl]);
-    g_LCoeff->GetYaxis()->SetRangeUser(minY - 1, maxY + 1); // Adjust y range
+    double minY = *min_element(lladhodo_LCoeff[npl], lladhodo_LCoeff[npl] + npts);
+    double maxY = *max_element(lladhodo_LCoeff[npl], lladhodo_LCoeff[npl] + npts);
+    g_LCoeff->GetYaxis()->SetRangeUser(minY - 1, maxY + 1);
 
-    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
-      g_LCoeff->SetPoint(ipmt, ipmt + 1, lladhodo_LCoeff[npl][ipmt]);
-    }
     LCoeff_canv->cd(npl + 1);
-    g_LCoeff->Draw("AP"); // Draw only points
+    g_LCoeff->Draw("AP"); // axes, points and error bars
+
+    // dashed zero line
+    TLine *zero_line = new TLine(0, 0, npts + 1, 0);
+    zero_line->SetLineColor(kBlack);
+    zero_line->SetLineStyle(2);
+    zero_line->Draw("same");
+
+    delete[] x;
+    delete[] y;
+    delete[] ex;
+    delete[] ey;
+  }
+
+  /***********DRAW CANVAS FOR lladhodo_LCoeff_FADC (FADC)***************/
+  TCanvas *LCoeff_FADC_canv = new TCanvas("LCoeff_FADC_canv", "Timing Corrections per Paddle (FADC)", 1000, 700);
+  LCoeff_FADC_canv->Divide(3, 2);
+
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    Int_t npts      = maxPMT[npl];
+    double *x_fadc  = new double[npts];
+    double *y_fadc  = new double[npts];
+    double *ex_fadc = new double[npts];
+    double *ey_fadc = new double[npts];
+
+    for (Int_t ipmt = 0; ipmt < npts; ++ipmt) {
+      x_fadc[ipmt]  = ipmt + 1;
+      y_fadc[ipmt]  = lladhodo_LCoeff_FADC[npl][ipmt];
+      ex_fadc[ipmt] = 0.0;
+      ey_fadc[ipmt] = lladhodo_sigArr_LCoeff_FADC[npl][ipmt];
+    }
+
+    TGraphErrors *g_LCoeff_FADC = new TGraphErrors(npts, x_fadc, y_fadc, ex_fadc, ey_fadc);
+    g_LCoeff_FADC->SetTitle(Form("Timing Corrections per Paddle for Plane %s (FADC)", pl_names[npl].Data()));
+    g_LCoeff_FADC->GetXaxis()->SetTitle("Paddle Number");
+    g_LCoeff_FADC->GetYaxis()->SetTitle("Timing Correction (ns)");
+    g_LCoeff_FADC->SetMarkerStyle(21);
+    g_LCoeff_FADC->SetMarkerColor(kBlue);
+
+    double minY_fadc = *min_element(lladhodo_LCoeff_FADC[npl], lladhodo_LCoeff_FADC[npl] + npts);
+    double maxY_fadc = *max_element(lladhodo_LCoeff_FADC[npl], lladhodo_LCoeff_FADC[npl] + npts);
+    g_LCoeff_FADC->GetYaxis()->SetRangeUser(minY_fadc - 1, maxY_fadc + 1);
+
+    LCoeff_canv->cd(npl + 1);
+    g_LCoeff_FADC->Draw("Psame"); // axes, points and error bars
+
+    TLine *zero_line_fadc = new TLine(0, 0, npts + 1, 0);
+    zero_line_fadc->SetLineColor(kBlack);
+    zero_line_fadc->SetLineStyle(2);
+    zero_line_fadc->Draw("same");
+
+    delete[] x_fadc;
+    delete[] y_fadc;
+    delete[] ex_fadc;
+    delete[] ey_fadc;
   }
 
   // Write Fit Results to Parameter File
@@ -695,7 +1166,7 @@ void fitHodoCalib(Int_t runNUM) {
   outPARAM << endl;
   outPARAM << "lladhodo_LCoeff = ";
 
-  // Write Lambda Time Coeff. Parameters to Param File
+  // Write Lambda Time Coeff. Parameters to Param File (TDC)
   for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
     for (Int_t npl = 0; npl < NPLANES; npl++) {
       if (npl == 0) {
@@ -710,6 +1181,35 @@ void fitHodoCalib(Int_t runNUM) {
     }
     outPARAM << fixed << endl;
   }
+
+  // Also write the FADC timing corrections
+  outPARAM << "" << endl;
+  outPARAM << "" << endl;
+  outPARAM << ";Timing Corrections Per Paddle from FADC, where 000 Paddle 00 has been set as the reference paddle"
+           << endl;
+  outPARAM << "; ";
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    outPARAM << setw(16) << pl_names[npl] << " ";
+  }
+  outPARAM << endl;
+  outPARAM << "lladhodo_LCoeff_FADC = ";
+
+  // Write Lambda Time Coeff. Parameters to Param File (FADC)
+  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+    for (Int_t npl = 0; npl < NPLANES; npl++) {
+      if (npl == 0) {
+        if (ipmt == 0) {
+          outPARAM << lladhodo_LCoeff_FADC[npl][ipmt];
+        } else {
+          outPARAM << setw(26) << lladhodo_LCoeff_FADC[npl][ipmt];
+        }
+      } else {
+        outPARAM << ", " << setw(15) << lladhodo_LCoeff_FADC[npl][ipmt];
+      }
+    }
+    outPARAM << fixed << endl;
+  }
+
   cout << "FINISHED Fitting Hodo Matrix . . . " << endl;
   cout << "Parameter File Created: " << Form("../../PARAM/LAD/HODO/ladhodo_Vpcalib_%d.param", runNUM) << endl;
 
@@ -718,8 +1218,10 @@ void fitHodoCalib(Int_t runNUM) {
   TFile *outROOT = new TFile(Form("HodoCalibPlots_%d.root", runNUM), "recreate");
   // Create directories for each type of canvas
   outROOT->mkdir("TWAvg");
+  outROOT->mkdir("TWAvg_FADC");
   outROOT->mkdir("TWAvg2D");
   outROOT->mkdir("TWDiff");
+  outROOT->mkdir("TWDiff_FADC");
   outROOT->mkdir("TWCorr_BarLCoef");
   outROOT->mkdir("TWUnCorr");
   outROOT->mkdir("TWCorr");
@@ -729,10 +1231,14 @@ void fitHodoCalib(Int_t runNUM) {
   for (Int_t npl = 0; npl < NPLANES; npl++) {
     outROOT->cd("TWAvg");
     TWAvg_canv[npl]->Write();
+    outROOT->cd("TWAvg_FADC");
+    TWAvg_canv_FADC[npl]->Write();
     outROOT->cd("TWAvg2D");
     TWAvg_canv_2D[npl]->Write();
     outROOT->cd("TWDiff");
     TWDiff_canv[npl]->Write();
+    outROOT->cd("TWDiff_FADC");
+    TWDiff_canv_FADC[npl]->Write();
     outROOT->cd("TWCorr_BarLCoef");
     TWCorr_BarLCoef[npl]->Write();
     for (Int_t side = 0; side < SIDES; side++) {
@@ -744,7 +1250,9 @@ void fitHodoCalib(Int_t runNUM) {
   }
   outROOT->cd("Param");
   cableArr_canv->Write();
+  // cableArr_FADC_canv->Write();
   velArr_canv->Write();
+  velArr_FADC_canv->Write();
   LCoeff_canv->Write();
   outROOT->Write();
   outROOT->Close();

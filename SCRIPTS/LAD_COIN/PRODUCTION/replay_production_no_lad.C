@@ -143,9 +143,11 @@ void replay_production_no_lad(int RunNumber = 0, int MaxEvent = 0, int run_type 
   // Load map depending on whether run is before or after SHMS DC swap
   gHcDetectorMap = new THcDetectorMap();
   if (RunNumber < 22157)
-    gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad.map");
-  else
+    gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad_3pass_swapped_DC.map");
+  else if (RunNumber < 22590)
     gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad_5pass.map");
+  else
+    gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad_5pass_May14.map");
 
   // Add the dec data class for debugging
   // Podd::DecData *decData = new Podd::DecData("D", "Decoder Raw Data");

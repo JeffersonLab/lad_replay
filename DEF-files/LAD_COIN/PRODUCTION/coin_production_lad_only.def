@@ -1,0 +1,34 @@
+# block T.coin.hTRIG*
+# block T.coin.pTRIG*
+block T.*
+
+
+block g.*
+
+
+block P.ladhod.*
+block H.ladhod.*
+
+
+
+
+
+begin epics
+IBC3H00CRCUR4
+hac_bcm_average
+ibcm1
+ibcm2
+iunser
+itov3out
+itov4out
+end epics
+
+
+#include "DEF-files/LAD_COIN/PRODUCTION/HODO/ladhod_histos.def"
+##include "DEF-files/LAD_COIN/PRODUCTION/HODO/ladhod_histos_expert_timing.def"
+##include "DEF-files/LAD_COIN/PRODUCTION/GEM/gem_histos.def"
+#include "DEF-files/LAD_COIN/PRODUCTION/TRIG/lad_trig_histos.def"
+
+##include "DEF-files/HMS/PRODUCTION/TRIG/htrig_histos.def"
+
+##include "DEF-files/SHMS/PRODUCTION/TRIG/ptrig_histos.def"

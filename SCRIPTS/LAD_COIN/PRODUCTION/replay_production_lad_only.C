@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-// #include "../../LAD/LAD_link_defs.h" //Leave this line commented. Used for debugging purposes only.
+#include "../../LAD/LAD_link_defs.h" //Leave this line commented. Used for debugging purposes only.
 
 // Returns 1 if runNumber has a GEM CM PED file, 0 otherwise
 void load_GEM_CM_PED(int runNumber) {
@@ -42,14 +42,12 @@ void load_GEM_CM_PED(int runNumber) {
     }
   }
 
-  //gHcParms->AddString("lgem_pedfile", Form("PARAM/LAD/GEM/PED/gem_ped_%d.dat", ped_cm_file_num));
-  gHcParms->AddString("lgem_pedfile", Form("PARAM/LAD/GEM/PED/daq_ped_L_gem_run%d.dat", ped_cm_file_num));
-  gHcParms->AddString("lgem_cmfile", Form("PARAM/LAD/GEM/CM/db_cmr_L_gem_run%d.dat", ped_cm_file_num));
-  //gHcParms->AddString("lgem_cmfile", Form("PARAM/LAD/GEM/CM/CommonModeRange_%d.txt", ped_cm_file_num));
+  gHcParms->AddString("lgem_pedfile", Form("PARAM/LAD/GEM/PED/gem_ped_%d.dat", ped_cm_file_num));
+  gHcParms->AddString("lgem_cmfile", Form("PARAM/LAD/GEM/CM/CommonModeRange_%d.txt", ped_cm_file_num));
   return;
 }
 
-void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, int FirstEvent = 1,
+void replay_production_lad_only(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, int FirstEvent = 1,
                                 int MaxSegment = 0, int FirstSegment = 0) {
 
   // Get RunNumber and MaxEvent if not provided.
@@ -125,10 +123,11 @@ void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_typ
 
   //(CA)
   TString REPORTFileName;
-  REPORTFileNamePattern = "REPORT_OUTPUT/LAD_COIN/PRODUCTION/replayReport_LAD_coin_production_%d_%d_%d_%d.report";
-  REPORTFileName        = Form(REPORTFileNamePattern, RunNumber, FirstSegment, MaxSegment, MaxEvent);
+  REPORTFileNamePattern =
+      "REPORT_OUTPUT/LAD_COIN/PRODUCTION/replayReport_LAD_coin_production_lad_only_%d_%d_%d_%d.report";
+  REPORTFileName = Form(REPORTFileNamePattern, RunNumber, FirstSegment, MaxSegment, MaxEvent);
 
-  ROOTFileNamePattern = "ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_%d_%d_%d_%d.root";
+  ROOTFileNamePattern = "ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_lad_only_%d_%d_%d_%d.root";
   ROOTFileName        = Form(ROOTFileNamePattern, RunNumber, FirstSegment, MaxSegment, MaxEvent);
   // ROOTFileNamePattern = "ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_production_hall_%d_%d.root";
   // ROOTFileNamePattern = "ROOTfiles/LAD_COIN/CALIBRATION/LAD_COIN_calibration_hall_%d_%d.root";
@@ -160,7 +159,7 @@ void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_typ
   else
     gHcDetectorMap->Load("MAPS/LAD_COIN/DETEC/coin_lad_5pass_May14.map");
 
-  load_GEM_CM_PED(RunNumber);
+  // load_GEM_CM_PED(RunNumber);
   // Add the dec data class for debugging
   // Podd::DecData *decData = new Podd::DecData("D", "Decoder Raw Data");
   // gHaApps->Add(decData);
@@ -186,53 +185,55 @@ void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_typ
   SHMS->AddEvtType(6);
   SHMS->AddEvtType(7);
   gHaApps->Add(SHMS);
-  // Add Noble Gas Cherenkov to SHMS apparatus
-  THcCherenkov *ngcer = new THcCherenkov("ngcer", "Noble Gas Cherenkov");
-  SHMS->AddDetector(ngcer);
-  // Add drift chambers to SHMS apparatus
-  THcDC *pdc = new THcDC("dc", "Drift Chambers");
-  SHMS->AddDetector(pdc);
-  // Add hodoscope to SHMS apparatus
-  THcHodoscope *phod = new THcHodoscope("hod", "Hodoscope");
-  SHMS->AddDetector(phod);
-  // Add Heavy Gas Cherenkov to SHMS apparatus
-  THcCherenkov *phgcer = new THcCherenkov("hgcer", "Heavy Gas Cherenkov");
-  SHMS->AddDetector(phgcer);
-  // Add Aerogel Cherenkov to SHMS apparatus
-  THcAerogel *aero = new THcAerogel("aero", "Aerogel");
-  SHMS->AddDetector(aero);
-  // Add calorimeter to SHMS apparatus
-  THcShower *pcal = new THcShower("cal", "Calorimeter");
-  SHMS->AddDetector(pcal);
+  // // Add Noble Gas Cherenkov to SHMS apparatus
+  // THcCherenkov *ngcer = new THcCherenkov("ngcer", "Noble Gas Cherenkov");
+  // SHMS->AddDetector(ngcer);
+  // // Add drift chambers to SHMS apparatus
+  // THcDC *pdc = new THcDC("dc", "Drift Chambers");
+  // SHMS->AddDetector(pdc);
+  // // Add hodoscope to SHMS apparatus
+  // THcHodoscope *phod = new THcHodoscope("hod", "Hodoscope");
+  // SHMS->AddDetector(phod);
+  // // Add Heavy Gas Cherenkov to SHMS apparatus
+  // THcCherenkov *phgcer = new THcCherenkov("hgcer", "Heavy Gas Cherenkov");
+  // SHMS->AddDetector(phgcer);
+  // // Add Aerogel Cherenkov to SHMS apparatus
+  // THcAerogel *aero = new THcAerogel("aero", "Aerogel");
+  // SHMS->AddDetector(aero);
+  // // Add calorimeter to SHMS apparatus
+  // THcShower *pcal = new THcShower("cal", "Calorimeter");
+  // SHMS->AddDetector(pcal);
 
   THcLADHodoscope *shms_lhod = new THcLADHodoscope("ladhod", "LAD Hodoscope");
   SHMS->AddDetector(shms_lhod);
 
-  THcLADGEM *shms_gem = new THcLADGEM("gem", "gem");
-  SHMS->AddDetector(shms_gem);
+  // THcLADGEM *shms_gem = new THcLADGEM("gem", "gem");
+  // shms_gem->setIgnoreVertex(true);
+  // SHMS->AddDetector(shms_gem);
 
   // Add rastered beam apparatus
   THaApparatus *pbeam = new THcRasteredBeam("P.rb", "Rastered Beamline");
   gHaApps->Add(pbeam);
   // Add physics modules
   // Calculate reaction point
-  THcReactionPoint *prp = new THcReactionPoint("P.react", "SHMS reaction point", "P", "P.rb");
-  gHaPhysics->Add(prp);
-  // Calculate extended target corrections
-  THcExtTarCor *pext = new THcExtTarCor("P.extcor", "HMS extended target corrections", "P", "P.react");
-  gHaPhysics->Add(pext);
-  // Calculate golden track quantites
-  THaGoldenTrack *gtr = new THaGoldenTrack("P.gtr", "SHMS Golden Track", "P");
-  gHaPhysics->Add(gtr);
-  // Calculate primary (scattered beam - usually electrons) kinematics
-  THcPrimaryKine *pkin = new THcPrimaryKine("P.kin", "SHMS Single Arm Kinematics", "P", "P.rb");
-  gHaPhysics->Add(pkin);
-  // Calculate the hodoscope efficiencies
-  THcHodoEff *peff = new THcHodoEff("phodeff", "SHMS hodo efficiency", "P.hod");
-  gHaPhysics->Add(peff);
+  // THcReactionPoint *prp = new THcReactionPoint("P.react", "SHMS reaction point", "P", "P.rb");
+  // gHaPhysics->Add(prp);
+  // // Calculate extended target corrections
+  // THcExtTarCor *pext = new THcExtTarCor("P.extcor", "HMS extended target corrections", "P", "P.react");
+  // gHaPhysics->Add(pext);
+  // // Calculate golden track quantites
+  // THaGoldenTrack *gtr = new THaGoldenTrack("P.gtr", "SHMS Golden Track", "P");
+  // gHaPhysics->Add(gtr);
+  // // Calculate primary (scattered beam - usually electrons) kinematics
+  // THcPrimaryKine *pkin = new THcPrimaryKine("P.kin", "SHMS Single Arm Kinematics", "P", "P.rb");
+  // gHaPhysics->Add(pkin);
+  // // Calculate the hodoscope efficiencies
+  // THcHodoEff *peff = new THcHodoEff("phodeff", "SHMS hodo efficiency", "P.hod");
+  // gHaPhysics->Add(peff);
 
-  THcLADKine *ladkin_p = new THcLADKine("P.ladkin", "LAD Kinematics", "P", "P.kin", "P.react");
-  gHaPhysics->Add(ladkin_p);
+  // Can I leave this??
+  // THcLADKine *ladkin_p = new THcLADKine("P.ladkin", "LAD Kinematics", "P", "P.kin", "P.react");
+  // gHaPhysics->Add(ladkin_p);
 
   // Add event handler for scaler events
   THcScalerEvtHandler *pscaler = new THcScalerEvtHandler("P", "Hall C scaler event type 1");
@@ -260,51 +261,53 @@ void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_typ
   HMS->AddEvtType(7);
   gHaApps->Add(HMS);
   // Add drift chambers to HMS apparatus
-  THcDC *hdc = new THcDC("dc", "Drift Chambers");
-  HMS->AddDetector(hdc);
-  // Add hodoscope to HMS apparatus
-  THcHodoscope *hhod = new THcHodoscope("hod", "Hodoscope");
-  HMS->AddDetector(hhod);
-  // Add Cherenkov to HMS apparatus
-  THcCherenkov *hcer = new THcCherenkov("cer", "Heavy Gas Cherenkov");
-  HMS->AddDetector(hcer);
+  // THcDC *hdc = new THcDC("dc", "Drift Chambers");
+  // HMS->AddDetector(hdc);
+  // // Add hodoscope to HMS apparatus
+  // THcHodoscope *hhod = new THcHodoscope("hod", "Hodoscope");
+  // HMS->AddDetector(hhod);
+  // // Add Cherenkov to HMS apparatus
+  // THcCherenkov *hcer = new THcCherenkov("cer", "Heavy Gas Cherenkov");
+  // HMS->AddDetector(hcer);
   // Add Aerogel Cherenkov to HMS apparatus
   // THcAerogel* aero = new THcAerogel("aero", "Aerogel");
   // HMS->AddDetector(aero);
   // Add calorimeter to HMS apparatus
-  THcShower *hcal = new THcShower("cal", "Calorimeter");
-  HMS->AddDetector(hcal);
+  // THcShower *hcal = new THcShower("cal", "Calorimeter");
+  // HMS->AddDetector(hcal);
 
   THcLADHodoscope *hms_lhod = new THcLADHodoscope("ladhod", "LAD Hodoscope");
   HMS->AddDetector(hms_lhod);
 
-  THcLADGEM *hms_gem = new THcLADGEM("gem", "gem");
-  HMS->AddDetector(hms_gem);
+  // THcLADGEM *hms_gem = new THcLADGEM("gem", "gem");
+  // hms_gem->setIgnoreVertex(true);
+  // HMS->AddDetector(hms_gem);
 
   // Add rastered beam apparatus
-  THaApparatus *hbeam = new THcRasteredBeam("H.rb", "Rastered Beamline");
-  gHaApps->Add(hbeam);
-  // Add physics modules
-  // Calculate reaction point
-  THcReactionPoint *hrp = new THcReactionPoint("H.react", "HMS reaction point", "H", "H.rb");
-  gHaPhysics->Add(hrp);
-  // Calculate extended target corrections
-  THcExtTarCor *hext = new THcExtTarCor("H.extcor", "HMS extended target corrections", "H", "H.react");
-  gHaPhysics->Add(hext);
-  // Calculate golden track quantities
-  THaGoldenTrack *hgtr = new THaGoldenTrack("H.gtr", "HMS Golden Track", "H");
-  gHaPhysics->Add(hgtr);
+  // THaApparatus *hbeam = new THcRasteredBeam("H.rb", "Rastered Beamline");
+  // gHaApps->Add(hbeam);
+  // // Add physics modules
+  // // Calculate reaction point
+  // THcReactionPoint *hrp = new THcReactionPoint("H.react", "HMS reaction point", "H", "H.rb");
+  // gHaPhysics->Add(hrp);
+  // // Calculate extended target corrections
+  // THcExtTarCor *hext = new THcExtTarCor("H.extcor", "HMS extended target corrections", "H", "H.react");
+  // gHaPhysics->Add(hext);
+  // // Calculate golden track quantities
+  // THaGoldenTrack *hgtr = new THaGoldenTrack("H.gtr", "HMS Golden Track", "H");
+  // gHaPhysics->Add(hgtr);
 
   // Calculate primary (scattered beam - usually electrons) kinematics
-  THcPrimaryKine *hkin = new THcPrimaryKine("H.kin", "HMS Single Arm Kinematics", "H", "H.rb");
-  gHaPhysics->Add(hkin);
+  // THcPrimaryKine *hkin = new THcPrimaryKine("H.kin", "HMS Single Arm Kinematics", "H", "H.rb");
+  // gHaPhysics->Add(hkin);
 
-  // Calculate the hodoscope efficiencies
-  THcHodoEff *heff = new THcHodoEff("hhodeff", "HMS hodo efficiency", "H.hod");
-  gHaPhysics->Add(heff);
+  // // Calculate the hodoscope efficiencies
+  // THcHodoEff *heff = new THcHodoEff("hhodeff", "HMS hodo efficiency", "H.hod");
+  // gHaPhysics->Add(heff);
 
-  THcLADKine *ladkin_h = new THcLADKine("H.ladkin", "LAD Kinematics", "H", "H.kin", "H.react");
-  gHaPhysics->Add(ladkin_h);
+  // Can I leave this?
+  // THcLADKine *ladkin_h = new THcLADKine("H.ladkin", "LAD Kinematics", "H", "H.kin", "H.react");
+  // gHaPhysics->Add(ladkin_h);
 
   // Add event handler for prestart event 125.
   THcConfigEvtHandler *ev125 = new THcConfigEvtHandler("HC", "Config Event type 125");
@@ -386,9 +389,9 @@ void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_typ
   // Define output ROOT file
   analyzer->SetOutFile(ROOTFileName.Data());
   // Define DEF-file
-  analyzer->SetOdefFile("DEF-files/LAD_COIN/PRODUCTION/coin_production_lad.def");
+  analyzer->SetOdefFile("DEF-files/LAD_COIN/PRODUCTION/coin_production_lad_only.def");
   // Define cuts file
-  analyzer->SetCutFile("DEF-files/LAD_COIN/PRODUCTION/CUTS/coin_production_cuts_lad.def"); // optional
+  analyzer->SetCutFile("DEF-files/LAD_COIN/PRODUCTION/CUTS/coin_production_cuts_lad_only.def"); // optional
   // File to record accounting information for cuts
   // analyzer->SetSummaryFile(SummaryFileName.Data()); // optional
 

@@ -141,6 +141,12 @@ void replay_lad_scalar(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, in
   // Add event handler for scaler events
   THcScalerEvtHandler *pscaler = new THcScalerEvtHandler("P", "Hall C scaler event type 1");
   pscaler->AddEvtType(1);
+  pscaler->AddEvtType(2);
+  pscaler->AddEvtType(3);
+  pscaler->AddEvtType(4);
+  pscaler->AddEvtType(5);
+  pscaler->AddEvtType(6);
+  pscaler->AddEvtType(7);
   pscaler->AddEvtType(129);
   pscaler->SetDelayedType(129);
   pscaler->SetUseFirstEvent(kTRUE);
@@ -167,6 +173,12 @@ void replay_lad_scalar(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, in
   // Add event handler for scaler events
   THcScalerEvtHandler *hscaler = new THcScalerEvtHandler("H", "Hall C scaler event type 1");
   hscaler->AddEvtType(1);
+  hscaler->AddEvtType(2);
+  hscaler->AddEvtType(3);
+  hscaler->AddEvtType(4);
+  hscaler->AddEvtType(5);
+  hscaler->AddEvtType(6);
+  hscaler->AddEvtType(7);
   hscaler->AddEvtType(131);
   hscaler->SetDelayedType(131);
   hscaler->SetUseFirstEvent(kTRUE);
@@ -182,7 +194,7 @@ void replay_lad_scalar(int RunNumber = 0, int MaxEvent = 0, int run_type = 1, in
   // tests/cuts, loops over Acpparatus's and PhysicsModules,
   // and executes the output routines.
   THcAnalyzer *analyzer = new THcAnalyzer;
-  // analyzer->EnablePhysicsEvents(kFALSE); // Disable physics events, only scalers and control events
+  analyzer->EnablePhysicsEvents(kFALSE); // Disable physics events, only scalers and control events
   // A simple event class to be output to the resulting tree.
   // Creating your own descendant of THaEvent is one way of
   // defining and controlling the output.

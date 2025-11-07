@@ -1,0 +1,13 @@
+Block: RawDecode
+#include "DEF-files/LAD_COIN/PRODUCTION/CUTS/coin_rawdecode_cuts.def"
+RawDecode_master ALL_events
+
+Block: CoarseReconstruct
+CoarseReconstruct_master 1
+
+Block: Tracking
+Tracking_master 1
+
+Block: LAD
+#include "DEF-files/LAD_COIN/PRODUCTION/CUTS/lad_coin_gem_cuts.def"
+LAD_master 1

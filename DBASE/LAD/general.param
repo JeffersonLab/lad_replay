@@ -13,7 +13,8 @@
 #include "PARAM/LAD/GEN/l_reftime_cut_laddaq.param"
 #include "PARAM/LAD/HODO/lhodo_TWcalib_186.param"
 ;#include "PARAM/LAD/HODO/ladhodo_Vpcalib.param"
-#include "PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param"
+;#include "PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param"
+#include "PARAM/LAD/HODO/ladhodo_Vpcalib_23798.param"
 
 ; LAD GEM Parameter files
 #include "PARAM/LAD/GEM/lgem_geom.param"
