@@ -92,7 +92,8 @@ cminch=2.54
 #include "PARAM/LAD/HODO/lhodo_cuts_May16.param"
 #include "PARAM/LAD/HODO/lhodo_calib.param"
 ;#include "PARAM/LAD/HODO/ladhodo_Vpcalib.param"
-#include "PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param"
+;#include "PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param"
+#include "PARAM/LAD/HODO/ladhodo_Vpcalib_23798.param"
 
 #include "PARAM/LAD/HODO/lhodo_TWcalib_186.param"
 
