@@ -20,16 +20,15 @@ lgem_m0_apvmap = 1
 lgem_m1_apvmap = 1
 
 ; Positions, all units in cm
-lgem_m0_position = 0, 0, 77.571; Position from survey
-;lgem_m0_position = 2.81105, 0, 80.6864
-;lgem_m1_position = 0, 0, 95.571
-;lgem_m1_position = 3.50819 , 0, 99.9002
-lgem_m1_position = 1.5, 0, 95.571
-;lgem_m0_position = 0, 0, 100.0
-;lgem_m1_position = 0, 0, 120.0
+lgem_m0_position = -0.205624, 1.33877, 79.0234; Position from survey
+lgem_m0_angle = 126.808, -0.00173414; deg 
+lgem_m0_rotation = -19.4683, 0.802703, 0.380487; deg
 
-lgem_angle = 127; deg
-;lgem_angle = 127.941; deg
+
+lgem_m1_position = -0.00165544, 0.259285, 96.2848
+lgem_m1_angle = 127, 0.587734; deg 
+lgem_m1_rotation = -20.8754 , -0.189912, 0.561991; deg
+
 lgem_d0_cut = 20000.0; cm
 
 
