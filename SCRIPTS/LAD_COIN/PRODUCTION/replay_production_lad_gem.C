@@ -381,6 +381,7 @@ void replay_production_lad_gem(int RunNumber = 0, int MaxEvent = 0, int run_type
   analyzer->SetEvent(event);
   // Set EPICS event type
   analyzer->SetEpicsEvtType(181);
+  analyzer->AddEpicsEvtType(182);
   // Define crate map
   analyzer->SetCrateMapFileName("MAPS/db_cratemap.dat");
   // analyzer->SetCrateMapFileName("MAPS/db_cratemap_lad.dat");// Temp set it to only LAD to avoid error
