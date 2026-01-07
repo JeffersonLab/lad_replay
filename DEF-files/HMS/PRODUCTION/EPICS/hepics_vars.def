@@ -18,7 +18,7 @@ ecP_HMS
 
 #Magnet Currents
 ecQ1_Set_Current
-ecQ2_I_True
+ecQ1_I_True
 ecQ2_Set_Current
 ecQ2_I_True
 ecQ3_Set_Current
