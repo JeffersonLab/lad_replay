@@ -11,19 +11,19 @@
 
 ; Add new variables for Hall C BPM A, B, and C, based on HARP calibration
 ; Updated  by Dave Gaskell
-;
+; Updated by E. Wertz to match April 11, 2025 BPM calibration as suggested by Dave Gaskell.
   gbpmxa_slope = -1.02
   gbpmxa_off   = +0.19
   gbpmxb_slope = -1.06
-  gbpmxb_off   = -0.72
+  gbpmxb_off   = -0.87
   gbpmxc_slope = -0.85
-  gbpmxc_off   = -0.72
+  gbpmxc_off   = -1.08
   gbpmya_slope = 0.99
-  gbpmya_off   = -0.11
+  gbpmya_off   = -0.10
   gbpmyb_slope = 1.18
-  gbpmyb_off   = -0.29
+  gbpmyb_off   = -0.52
   gbpmyc_slope = 0.87
-  gbpmyc_off   = +0.15
+  gbpmyc_off   = -0.23
 
 ;positions of BPMs relative to target (from Fall 2018 survey)
 gbpma_zpos = 320.17 ; cm
