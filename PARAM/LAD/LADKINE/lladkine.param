@@ -12,3 +12,5 @@ lmax_dTrk_vert_hitMatch = 100 ; cm
 lglobal_time_offset = -1710 ;ns This isn't being used yet
 
 ltrk_dt_cut = 10
+
+l_rf_offset =   0,   0

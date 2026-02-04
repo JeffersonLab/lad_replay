@@ -5,6 +5,7 @@
 */
 
 #include "TCanvas.h"
+#include "TChain.h"
 #include "TFile.h"
 #include "TH1F.h"
 #include "TMath.h"
@@ -12,6 +13,7 @@
 #include <TDecompSVD.h>
 #include <TF1.h>
 #include <TGraph.h>
+#include <TGraphAsymmErrors.h>
 #include <TGraphErrors.h>
 #include <TH2.h>
 #include <TLegend.h>
@@ -39,8 +41,11 @@ const static double TdcTimeTWCorr_MAX = 100000.0; // Was originally 100.
 const static double AdcTimeTWCorr_MAX = 100000.0;
 const static int minADC_PulseAmp      = 40; // Minimum ADC Pulse Amplitude to consider for Time Walk correction
 
-void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
-  // void fitHodoCalib(Int_t runNUM) {
+// void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
+void fitHodoCalib(Int_t runNUM) {
+
+  // Flag to use average velocity for all paddles instead of individual values
+  Bool_t use_vp_avg = kTRUE;
 
   gROOT->SetBatch(kTRUE);
   // TString filename = Form("../../ROOTfiles/COSMICS/LAD_wREF_cosmic_hall_%d_-1.root", runNUM);
@@ -51,22 +56,58 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
 
   Int_t evtNUM = 30000;
 
-  TFile *data_file = new TFile(filename, "READ");
-  TTree *T         = (TTree *)data_file->Get("T");
+  // TFile *data_file = new TFile(filename, "READ");
+  // TTree *T         = (TTree *)data_file->Get("T");
+
+  // Create a TChain named "T" and add the listed files
+  TChain *T = new TChain("T");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23063_6_7_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23038_9_10_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23064_0_0_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23065_0_0_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23041_0_1_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23071_0_1_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23046_3_4_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23073_9_9_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23047_9_9_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23053_6_6_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23076_6_7_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23054_0_0_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23077_0_1_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23055_9_10_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23095_3_3_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23096_9_9_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23057_9_10_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23097_3_3_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23058_9_9_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23098_9_9_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23061_6_7_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23062_6_6_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23100_9_10_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23038_6_8_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23038_0_2_-1.root");
+  // T->Add("/cache/hallc/c-lad/analysis/ehingerl/online_v2/LAD_COIN_23038_3_5_-1.root");
+
+  T->Add("/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/COSMICS/LAD_wGEM_cosmic_hall_22483_-1.root");
+  T->Add("/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/COSMICS/LAD_wGEM_cosmic_hall_22487_-1.root");
+  // Report what was added
+  std::cout << "TChain T created: " << T->GetNtrees() << " files, total entries = " << T->GetEntries() << std::endl;
 
   /******Define Fixed Quantities********/
-  static const Int_t NPLANES                       = 6;
-  static const Int_t MAX_PADDLES                   = 11;
-  static const Int_t SIDES                         = 2;
-  TString spec                                     = "L";
-  TString det                                      = "ladhod";
-  TString pl_names[NPLANES]                        = {"000", "001", "100", "101", "200", "REFBAR"};
-  TString side_names[2]                            = {"GoodTop", "GoodBtm"};
-  TString nsign[2]                                 = {"+", "-"};
-  Int_t maxPMT[NPLANES]                            = {11, 11, 11, 11, 11, 1};
-  Int_t refBar                                     = 0;
-  Int_t refPlane                                   = 0;
-  Double_t lladhodo_velArr[NPLANES][MAX_PADDLES]   = {0.0}; // store hhodo velocity parameters (1/slope of the line fit)
+  static const Int_t NPLANES                     = 6;
+  static const Int_t MAX_PADDLES                 = 11;
+  static const Int_t SIDES                       = 2;
+  TString spec                                   = "L"; // Usually "L"
+  TString det                                    = "ladhod";
+  TString pl_names[NPLANES]                      = {"000", "001", "100", "101", "200", "REFBAR"};
+  TString side_names[2]                          = {"GoodTop", "GoodBtm"};
+  TString nsign[2]                               = {"+", "-"};
+  Int_t maxPMT[NPLANES]                          = {11, 11, 11, 11, 11, 1};
+  Int_t refBar                                   = 0;
+  Int_t refPlane                                 = 0;
+  Double_t lladhodo_velArr[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo velocity parameters (1/slope of the line fit)
+  Double_t lladhodo_velArr_err[NPLANES][MAX_PADDLES][2] = {
+      0.0};                                                 // store hhodo velocity parameters (1/slope of the line fit)
   Double_t lladhodo_cableArr[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo cableLength differences (y-int of line fit)
   Double_t lladhodo_LCoeff[NPLANES][MAX_PADDLES]   = {0.0}; // Variables to write out LCoeff. parameter file
   Double_t lladhodo_sigArr[NPLANES][MAX_PADDLES]   = {0.0}; // store hhodo sigma parameters
@@ -77,9 +118,10 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
       0.0}; // store hhodo cableLength differences (y-int of line fit) for FADC
   Double_t lladhodo_LCoeff_FADC[NPLANES][MAX_PADDLES] = {0.0}; // Variables to write out LCoeff. parameter file for FADC
   Double_t lladhodo_sigArr_FADC[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo sigma parameters for FADC
-  Double_t lladhodo_sigArr_LCoeff_FADC[NPLANES][MAX_PADDLES] = {0.0}; // store hhodo sigma parameters for FADC
-  Double_t vp                                                = 30.0;  // speed of light [cm/ns]
-  Double_t paddle_vel_fit_max_threshold                      = 0.1;   // 0-1 range, 0.1 = 10% threshold
+  Double_t lladhodo_sigArr_LCoeff_FADC[NPLANES][MAX_PADDLES] = {0.0};        // store hhodo sigma parameters for FADC
+  Double_t vp                                                = 30.0;         // speed of light [cm/ns]
+  Double_t paddle_vel_fit_max_threshold                      = 0.10;         // 0-1 range, 0.05 = 5% threshold
+  Double_t paddle_vel_fit_max_threshold_err[2]               = {0.05, 0.15}; // 0-1 range, 0.05 = 5% threshold
   Double_t barlength[NPLANES][MAX_PADDLES]                   = {
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1},
       {387.5, 393.3, 399.0, 404.8, 410.5, 416.3, 422.0, 427.8, 433.6, 439.3, 445.1},
@@ -90,14 +132,14 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
 
   // Plotting parameters
   static const Int_t TDC_T_NBINS         = 1000;
-  static const Double_t TDC_T_MIN        = -60.0;
-  static const Double_t TDC_T_MAX        = 60.0;
+  static const Double_t TDC_T_MIN        = -60.0; // 60
+  static const Double_t TDC_T_MAX        = 60.0;  //-60
   static const Int_t ADC_TDC_diff_NBINS  = 100;
-  static const Double_t ADC_TDC_diff_MIN = -360.0;
-  static const Double_t ADC_TDC_diff_MAX = -330.0;
-  static const Int_t DiffTime_NBINS      = 1000;
-  static const Double_t DiffTime_MIN     = -40.0;
-  static const Double_t DiffTime_MAX     = 40.0;
+  static const Double_t ADC_TDC_diff_MIN = -1000.0; // 360.0
+  static const Double_t ADC_TDC_diff_MAX = -330.0;  //-330.0
+  static const Int_t DiffTime_NBINS      = 500;
+  static const Double_t DiffTime_MIN     = -40.0; // -40.0
+  static const Double_t DiffTime_MAX     = 40.0;  // 40.0
   static const Int_t FADC_T_NBINS        = 1000;
   static const Double_t FADC_T_MIN       = -60.0;
   static const Double_t FADC_T_MAX       = 60.0;
@@ -311,6 +353,7 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
   cout << "Initializing 1st Pass of Event Loop: " << endl;
 
   Long64_t nentries = T->GetEntries();
+  // nentries          = 20000; // Hard coded for testing
 
   // Loop over all entries
   for (Long64_t i = 0; i < nentries; i++) {
@@ -484,20 +527,73 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
           int bin_left     = peak_bin;
           int bin_right    = peak_bin;
 
-          // Find the bin to the left where the value drops below the threshold
+          // Find the bin to the left where the value drops below the threshold (main threshold)
           while (bin_left > 1 && h1Hist_TWDiff[npl][ipmt]->GetBinContent(bin_left) > threshold) {
             bin_left--;
           }
           double value_below_threshold_btm = h1Hist_TWDiff[npl][ipmt]->GetBinCenter(bin_left);
 
-          // Find the bin to the right where the value drops below the threshold
+          // Find the bin to the right where the value drops below the threshold (main threshold)
           while (bin_right < h1Hist_TWDiff[npl][ipmt]->GetNbinsX() &&
                  h1Hist_TWDiff[npl][ipmt]->GetBinContent(bin_right) > threshold) {
             bin_right++;
           }
           double value_below_threshold_top = h1Hist_TWDiff[npl][ipmt]->GetBinCenter(bin_right);
 
-          lladhodo_velArr[npl][ipmt] = barlength[npl][ipmt] / (value_below_threshold_top - value_below_threshold_btm);
+          // Also compute the same pair of edge-values for the two error-bar threshold points
+          // Build fractional thresholds, clamp into [0,1]
+          double low_frac = paddle_vel_fit_max_threshold_err[0];
+          if (low_frac < 0.0)
+            low_frac = 0.0;
+          double high_frac = paddle_vel_fit_max_threshold_err[1];
+          if (high_frac > 1.0)
+            high_frac = 1.0;
+
+          // Convert fractional thresholds to counts (multiplying by peak)
+          double threshold_low  = low_frac * peak;
+          double threshold_high = high_frac * peak;
+
+          // Find left/right bins for low threshold
+          int bin_left_low  = peak_bin;
+          int bin_right_low = peak_bin;
+          while (bin_left_low > 1 && h1Hist_TWDiff[npl][ipmt]->GetBinContent(bin_left_low) > threshold_low) {
+            --bin_left_low;
+          }
+          while (bin_right_low < h1Hist_TWDiff[npl][ipmt]->GetNbinsX() &&
+                 h1Hist_TWDiff[npl][ipmt]->GetBinContent(bin_right_low) > threshold_low) {
+            ++bin_right_low;
+          }
+          double value_below_threshold_btm_low = h1Hist_TWDiff[npl][ipmt]->GetBinCenter(bin_left_low);
+          double value_below_threshold_top_low = h1Hist_TWDiff[npl][ipmt]->GetBinCenter(bin_right_low);
+
+          // Find left/right bins for high threshold
+          int bin_left_high  = peak_bin;
+          int bin_right_high = peak_bin;
+          while (bin_left_high > 1 && h1Hist_TWDiff[npl][ipmt]->GetBinContent(bin_left_high) > threshold_high) {
+            --bin_left_high;
+          }
+          while (bin_right_high < h1Hist_TWDiff[npl][ipmt]->GetNbinsX() &&
+                 h1Hist_TWDiff[npl][ipmt]->GetBinContent(bin_right_high) > threshold_high) {
+            ++bin_right_high;
+          }
+          double value_below_threshold_btm_high = h1Hist_TWDiff[npl][ipmt]->GetBinCenter(bin_left_high);
+          double value_below_threshold_top_high = h1Hist_TWDiff[npl][ipmt]->GetBinCenter(bin_right_high);
+
+          // Compute velocities for main, low and high thresholds (protect against zero/very small denom)
+          double delta_main = value_below_threshold_top - value_below_threshold_btm;
+          double vel_main   = (fabs(delta_main) > 1e-6) ? (barlength[npl][ipmt] / delta_main) : 0.0;
+
+          double delta_low = value_below_threshold_top_low - value_below_threshold_btm_low;
+          double vel_low   = (fabs(delta_low) > 1e-6) ? (barlength[npl][ipmt] / delta_low) : 0.0;
+
+          double delta_high = value_below_threshold_top_high - value_below_threshold_btm_high;
+          double vel_high   = (fabs(delta_high) > 1e-6) ? (barlength[npl][ipmt] / delta_high) : 0.0;
+
+          // Store main velocity as before; vel_low and vel_high are available for error-band use
+          lladhodo_velArr[npl][ipmt] = vel_main;
+
+          lladhodo_velArr_err[npl][ipmt][0] = vel_low;
+          lladhodo_velArr_err[npl][ipmt][1] = vel_high;
 
           // Draw 1D TWAvg Histos
           TWAvg_canv[npl]->cd(ipmt + 1);
@@ -695,23 +791,78 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
   TCanvas *velArr_FADC_canv = new TCanvas("velArr_FADC_canv", "FADC Propagation Velocities per Paddle", 1000, 700);
   velArr_FADC_canv->Divide(3, 2);
 
+  // Calculate global average velocity (TDC) excluding values >18 or <15
+  double sum_vel = 0.0;
+  int count_vel = 0;
   for (Int_t npl = 0; npl < NPLANES; npl++) {
-    TGraph *g_VelArr = new TGraph(maxPMT[npl]);
+    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
+      double val = lladhodo_velArr[npl][ipmt];
+      if (val >= 15.0 && val <= 18.0) {
+        sum_vel += val;
+        count_vel++;
+      }
+    }
+  }
+  double avg_vel = (count_vel > 0) ? (sum_vel / count_vel) : 0.0;
+  cout << "Average TDC velocity (14-18 cm/ns): " << avg_vel << " cm/ns (" << count_vel << " values)" << endl;
+
+  // Calculate global average velocity (FADC) excluding values >18 or <14
+  double sum_vel_fadc = 0.0;
+  int count_vel_fadc = 0;
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
+      double val = lladhodo_velArr_FADC[npl][ipmt];
+      if (val >= 14.0 && val <= 18.0) {
+        sum_vel_fadc += val;
+        count_vel_fadc++;
+      }
+    }
+  }
+  double avg_vel_fadc = (count_vel_fadc > 0) ? (sum_vel_fadc / count_vel_fadc) : 0.0;
+  cout << "Average FADC velocity (14-18 cm/ns): " << avg_vel_fadc << " cm/ns (" << count_vel_fadc << " values)" << endl;
+
+  for (Int_t npl = 0; npl < NPLANES; npl++) {
+    Int_t npts = maxPMT[npl];
+    double *x = new double[npts];
+    double *y = new double[npts];
+    double *ex = new double[npts];
+    double *eylow = new double[npts];
+    double *eyhigh = new double[npts];
+
+    for (Int_t ipmt = 0; ipmt < npts; ipmt++) {
+      x[ipmt] = ipmt + 1;
+      y[ipmt] = lladhodo_velArr[npl][ipmt];
+      ex[ipmt] = 0.0;
+      eylow[ipmt] = lladhodo_velArr[npl][ipmt] - lladhodo_velArr_err[npl][ipmt][0];
+      eyhigh[ipmt] = lladhodo_velArr_err[npl][ipmt][1] - lladhodo_velArr[npl][ipmt];
+    }
+
+    TGraphAsymmErrors *g_VelArr = new TGraphAsymmErrors(npts, x, y, ex, ex, eylow, eyhigh);
     g_VelArr->SetTitle(Form("Propagation Velocities per Paddle for Plane %s", pl_names[npl].Data()));
     g_VelArr->GetXaxis()->SetTitle("Paddle Number");
     g_VelArr->GetYaxis()->SetTitle("Propagation Velocity (cm/ns)");
-    g_VelArr->SetMarkerStyle(20);   // Set marker style to points
-    g_VelArr->SetMarkerColor(kRed); // Set marker color
+    g_VelArr->SetMarkerStyle(20);
+    g_VelArr->SetMarkerColor(kRed);
 
     double minY = *min_element(lladhodo_velArr[npl], lladhodo_velArr[npl] + maxPMT[npl]);
     double maxY = *max_element(lladhodo_velArr[npl], lladhodo_velArr[npl] + maxPMT[npl]);
-    g_VelArr->GetYaxis()->SetRangeUser(minY - 1, maxY + 1); // Adjust y range
+    g_VelArr->GetYaxis()->SetRangeUser(minY - 1, maxY + 1);
 
-    for (Int_t ipmt = 0; ipmt < maxPMT[npl]; ipmt++) {
-      g_VelArr->SetPoint(ipmt, ipmt + 1, lladhodo_velArr[npl][ipmt]);
-    }
     velArr_canv->cd(npl + 1);
-    g_VelArr->Draw("AP"); // Draw only points
+    g_VelArr->Draw("AP");
+
+    // Draw horizontal line at global average velocity
+    TLine *line_avg_vel = new TLine(0, avg_vel, maxPMT[npl] + 1, avg_vel);
+    line_avg_vel->SetLineColor(kGreen + 2);
+    line_avg_vel->SetLineStyle(2);
+    line_avg_vel->SetLineWidth(2);
+    line_avg_vel->Draw("same");
+
+    delete[] x;
+    delete[] y;
+    delete[] ex;
+    delete[] eylow;
+    delete[] eyhigh;
 
     TGraph *g_VelArr_FADC = new TGraph(maxPMT[npl]);
     g_VelArr_FADC->SetTitle(Form("FADC Propagation Velocities per Paddle for Plane %s", pl_names[npl].Data()));
@@ -729,6 +880,13 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
     }
     velArr_FADC_canv->cd(npl + 1);
     g_VelArr_FADC->Draw("AP");
+
+    // Draw horizontal line at global average velocity (FADC)
+    TLine *line_avg_vel_fadc = new TLine(0, avg_vel_fadc, maxPMT[npl] + 1, avg_vel_fadc);
+    line_avg_vel_fadc->SetLineColor(kGreen + 2);
+    line_avg_vel_fadc->SetLineStyle(2);
+    line_avg_vel_fadc->SetLineWidth(2);
+    line_avg_vel_fadc->Draw("same");
 
     // Draw a dashed line at y = 0
     TLine *line_fadc_zero = new TLine(0, 0, maxPMT[npl] + 1, 0);
@@ -757,19 +915,39 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
   outPARAM << "lladhodo_velFit = ";
 
   //--------Write Velocity Parameters to Param File-----
-  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
-    for (Int_t npl = 0; npl < NPLANES; npl++) {
-      if (npl == 0) {
-        if (ipmt == 0) {
-          outPARAM << lladhodo_velArr[npl][ipmt];
+  outPARAM << fixed << setprecision(4);
+  if (use_vp_avg) {
+    // Write average velocity for all paddles
+    for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+      for (Int_t npl = 0; npl < NPLANES; npl++) {
+        if (npl == 0) {
+          if (ipmt == 0) {
+            outPARAM << avg_vel;
+          } else {
+            outPARAM << setw(26) << avg_vel;
+          }
         } else {
-          outPARAM << setw(26) << lladhodo_velArr[npl][ipmt];
+          outPARAM << ", " << setw(15) << avg_vel;
         }
-      } else {
-        outPARAM << ", " << setw(15) << lladhodo_velArr[npl][ipmt];
       }
+      outPARAM << endl;
     }
-    outPARAM << fixed << endl;
+  } else {
+    // Write individual velocity values
+    for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+      for (Int_t npl = 0; npl < NPLANES; npl++) {
+        if (npl == 0) {
+          if (ipmt == 0) {
+            outPARAM << lladhodo_velArr[npl][ipmt];
+          } else {
+            outPARAM << setw(26) << lladhodo_velArr[npl][ipmt];
+          }
+        } else {
+          outPARAM << ", " << setw(15) << lladhodo_velArr[npl][ipmt];
+        }
+      }
+      outPARAM << endl;
+    }
   }
 
   // Also write FADC velocities
@@ -782,19 +960,39 @@ void fitHodoCalib(TString filename, Int_t runNUM, Bool_t cosmic_flag = kFALSE) {
   }
   outPARAM << endl;
   outPARAM << "lladhodo_velFit_FADC = ";
-  for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
-    for (Int_t npl = 0; npl < NPLANES; npl++) {
-      if (npl == 0) {
-        if (ipmt == 0) {
-          outPARAM << lladhodo_velArr_FADC[npl][ipmt];
+  outPARAM << fixed << setprecision(4);
+  if (use_vp_avg) {
+    // Write average FADC velocity for all paddles
+    for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+      for (Int_t npl = 0; npl < NPLANES; npl++) {
+        if (npl == 0) {
+          if (ipmt == 0) {
+            outPARAM << avg_vel_fadc;
+          } else {
+            outPARAM << setw(26) << avg_vel_fadc;
+          }
         } else {
-          outPARAM << setw(26) << lladhodo_velArr_FADC[npl][ipmt];
+          outPARAM << ", " << setw(15) << avg_vel_fadc;
         }
-      } else {
-        outPARAM << ", " << setw(15) << lladhodo_velArr_FADC[npl][ipmt];
       }
+      outPARAM << endl;
     }
-    outPARAM << fixed << endl;
+  } else {
+    // Write individual FADC velocity values
+    for (Int_t ipmt = 0; ipmt < MAX_PADDLES; ipmt++) {
+      for (Int_t npl = 0; npl < NPLANES; npl++) {
+        if (npl == 0) {
+          if (ipmt == 0) {
+            outPARAM << lladhodo_velArr_FADC[npl][ipmt];
+          } else {
+            outPARAM << setw(26) << lladhodo_velArr_FADC[npl][ipmt];
+          }
+        } else {
+          outPARAM << ", " << setw(15) << lladhodo_velArr_FADC[npl][ipmt];
+        }
+      }
+      outPARAM << endl;
+    }
   }
 
   outPARAM << " " << endl;
