@@ -12,19 +12,19 @@ lladhodo_plane_names = "000 001 100 101 200 REFBAR"
       lladhodo_REFBAR_nr = 1
 
 ; ladhodoscope Central Angles
-      lladhodo_000_theta = 2.61799 ; 150 deg
-      lladhodo_001_theta = 2.61799; 150 deg
-      lladhodo_100_theta = 2.21657 ; 127 deg
-      lladhodo_101_theta = 2.21657 ; 127 deg
-      lladhodo_200_theta = 1.81514 ; 104 deg
+      lladhodo_000_theta = 2.612452591 ; 150 deg
+      lladhodo_001_theta = 2.615772334; 150 deg
+      lladhodo_100_theta = 2.212325822 ; 127 deg
+      lladhodo_101_theta = 2.213860777 ; 127 deg
+      lladhodo_200_theta = 1.814590772 ; 104 deg
       lladhodo_REFBAR_theta = 0; temp refbar val
 
 ; Z positions of ladhodoscopes (cm)
-      lladhodo_000_zpos =  615
-      lladhodo_001_zpos =  655.6 ; (615+40.6)
-      lladhodo_100_zpos =  523
-      lladhodo_101_zpos =  563.6 ; (523+40.6)
-      lladhodo_200_zpos =  615
+      lladhodo_000_zpos =  618.8125006 
+      lladhodo_001_zpos =  658.5516251 
+      lladhodo_100_zpos =  526.1277344 
+      lladhodo_101_zpos =  568.079082 
+      lladhodo_200_zpos =  614.5200935 
       lladhodo_REFBAR_zpos =  999 ; temp refbar val
       lladhodo_000_dzpos = 0
       lladhodo_001_dzpos = 0
