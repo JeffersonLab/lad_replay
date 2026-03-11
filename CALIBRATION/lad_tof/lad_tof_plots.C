@@ -32,7 +32,7 @@ struct hist_params {
 };
 
 const hist_params time_params = {70, 1725.0, 1825.0};
-const hist_params tof_params  = {70, 50, 150};
+const hist_params tof_params  = {140, 20, 150};
 
 const double TDC2NS = 0.09766; // TDC to ns conversion factor
 const double ADC2NS = 0.0625;  // ADC to ns conversion factor
@@ -40,8 +40,9 @@ const double ADC2NS = 0.0625;  // ADC to ns conversion factor
 const int MINT_EVTS_PER_THREAD = 100000;
 bool process_by_file           = true;
 
-const double edep_cut = 100; // mV
+const double edep_cut = 70; // mV
 
+const int N_PLANES                 = 5;
 const double hodo_angles[N_PLANES] = {150, 150, 127, 127, 104};               // Angles for each plane in deg
 const double hodo_radii[N_PLANES]  = {615, 615 + 40.6, 523, 523 + 40.6, 615}; // Radii for each plane in cm
 
@@ -65,7 +66,6 @@ hit_cut hit_cuts[nHitCuts] = {{5, false, false, "All_Hits", true},
                               {2, false, true, "Anti-Matching_Hit_Tol_2", false}};
 const char spec_prefix     = 'H'; // Spectrometer to replay
 
-const int N_PLANES                 = 5;
 const int N_PADDLES                = 11;
 const string plane_names[N_PLANES] = {"000", "001", "100", "101", "200"};
 const int N_SIDES                  = 2;
@@ -587,6 +587,7 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
 
     // Calculate fullhit_tof_avg by subtracting hodo_start_time from fullhit_time_avg
     Double_t fullhit_tof_trigger_avg[N_PLANES][MAX_DATA] = {-999};
+    Double_t fullhit_tof_avg_per_m[N_PLANES][MAX_DATA]   = {-999};
     for (int plane = 0; plane < N_PLANES; ++plane) {
       for (int i_hit = 0; i_hit < fullhit_n[plane]; ++i_hit) {
         double path_length =
@@ -595,6 +596,7 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
                       100; // Add 0.5 cm to account for the width of the paddle
         fullhit_tof_trigger_avg[plane][i_hit] =
             (fullhit_time_avg[plane][i_hit] - hodo_start_time + 60 - 1750 + 19 - 2 * 6) / path_length;
+        fullhit_tof_avg_per_m[plane][i_hit] = (fullhit_tof_avg[plane][i_hit] - 40) / path_length;
       }
     }
 
@@ -603,8 +605,14 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
     Double_t fullhit_tof_trigger_avg_edepCut[N_PLANES][MAX_DATA] = {-999};
     Int_t fullhit_n_edepCut[N_PLANES]                            = {0};
 
+    Double_t fullhit_time_avg_antiEdepCut[N_PLANES][MAX_DATA]        = {-999};
+    Double_t fullhit_tof_avg_antiEdepCut[N_PLANES][MAX_DATA]         = {-999};
+    Double_t fullhit_tof_trigger_avg_antiEdepCut[N_PLANES][MAX_DATA] = {-999};
+    Int_t fullhit_n_antiEdepCut[N_PLANES]                            = {0};
+
     for (int plane = 0; plane < N_PLANES; ++plane) {
-      fullhit_n_edepCut[plane] = 0;
+      fullhit_n_edepCut[plane]     = 0;
+      fullhit_n_antiEdepCut[plane] = 0;
       for (int i_hit = 0; i_hit < fullhit_n[plane]; ++i_hit) {
         if (fullhit_adc_avg[plane][i_hit] > edep_cut) {
           int idx                                     = fullhit_n_edepCut[plane];
@@ -612,6 +620,12 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
           fullhit_tof_avg_edepCut[plane][idx]         = fullhit_tof_avg[plane][i_hit];
           fullhit_tof_trigger_avg_edepCut[plane][idx] = fullhit_tof_trigger_avg[plane][i_hit];
           fullhit_n_edepCut[plane]++;
+        } else {
+          int idx                                         = fullhit_n_antiEdepCut[plane];
+          fullhit_time_avg_antiEdepCut[plane][idx]        = fullhit_time_avg[plane][i_hit];
+          fullhit_tof_avg_antiEdepCut[plane][idx]         = fullhit_tof_avg[plane][i_hit];
+          fullhit_tof_trigger_avg_antiEdepCut[plane][idx] = fullhit_tof_trigger_avg[plane][i_hit];
+          fullhit_n_antiEdepCut[plane]++;
         }
       }
     }
@@ -621,14 +635,23 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
                             hist_map_trk_cuts["h_ToF_bar"], -200, 500);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg_edepCut,
                             hist_map_trk_cuts["h_ToF_edepCut_bar"], -200, 500);
+    make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg_antiEdepCut,
+                            hist_map_trk_cuts["h_ToF_antiEdepCut_bar"], -200, 500);
+    make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg_per_m,
+                            hist_map_trk_cuts["h_ToF_per_m_bar"], -10, 50);
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_trigger_avg,
                             hist_map_trk_cuts["h_ToF_trigger_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_trigger_avg_edepCut,
                             hist_map_trk_cuts["h_ToF_trigger_edepCut_bar"], -100, 100);
+    make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg,
+                            fullhit_tof_trigger_avg_antiEdepCut, hist_map_trk_cuts["h_ToF_trigger_antiEdepCut_bar"],
+                            -100, 100);
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_time_avg,
                             hist_map_trk_cuts["h_Time_Avg_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_time_avg_edepCut,
                             hist_map_trk_cuts["h_Time_Avg_edepCut_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+    make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_time_avg_antiEdepCut,
+                            hist_map_trk_cuts["h_Time_Avg_antiEdepCut_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(nData_tdc[0], tdc_counter[0], has_hodo_hit_tdc[0], tdc_time[0],
                             hist_map_trk_cuts["h_TDC_top_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(nData_tdc[1], tdc_counter[1], has_hodo_hit_tdc[1], tdc_time[1],
@@ -661,10 +684,10 @@ int lad_tof_plots() {
   // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1.root",
   // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1_1.root"};
   // std::vector<TString> fileNames = get_file_names("files/all_LD2_setting2_runlist.dat");
-  std::vector<TString> fileNames = get_file_names("files/all_C3_runlist.dat");
+  std::vector<TString> fileNames = get_file_names("files/all_updated_timing.dat");
   // std::vector<TString> fileNames = get_file_names("files/LD2_setting1_new2.dat");
 
-  TString outputFileName = Form("files/raw_hodo_timing_plots/raw_hodo_timing_plots_C3_%c.root", spec_prefix);
+  TString outputFileName = Form("files/root/updated_timing_plots_C3_%c.root", spec_prefix);
   // TString outputFileName =
   //     Form("files/raw_hodo_timing_plots/raw_hodo_timing_plots_LD2_setting1_new2_%c.root", spec_prefix);
 
@@ -763,6 +786,15 @@ int lad_tof_plots() {
           hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
           hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
 
+          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_per_m_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       Form("ToF per m Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       200, -10, 10);
+          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
           hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar] =
               new TH1F(Form("h_ToF_trigger_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
                             hit_cuts[i_hit_cut].cut_name.c_str(), thread),
@@ -800,6 +832,35 @@ int lad_tof_plots() {
           hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
               "ToF Trigger (ns)");
           hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_Time_Avg_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       Form("Time Avg antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "Time Avg (ns)");
+          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       Form("ToF antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       tof_params.NBINS, tof_params.MIN, tof_params.MAX);
+          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
+          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_trigger_antiEdepCut_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(),
+                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       Form("ToF Trigger antiEdepCut Bar Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
+                       200, -10, 10);
+          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Trigger (ns)");
+          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
         }
       }
     }
@@ -913,6 +974,10 @@ int lad_tof_plots() {
     write_to_canvas_plane(hist_map_vec[0]["h_ToF_bar"][i_hit_cut], outputFile,
                           Form("KIN/ToF/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
                           Form("ToF_%s", hit_cuts[i_hit_cut].cut_name.c_str()), hit_cuts[i_hit_cut].include_comp_plt);
+    write_to_canvas_plane(hist_map_vec[0]["h_ToF_per_m_bar"][i_hit_cut], outputFile,
+                          Form("KIN/ToF_per_m/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          Form("ToF_per_m_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          hit_cuts[i_hit_cut].include_comp_plt);
     write_to_canvas_plane(hist_map_vec[0]["h_ToF_trigger_bar"][i_hit_cut], outputFile,
                           Form("KIN/ToF_Trigger/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
                           Form("ToF_Trigger_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
@@ -928,6 +993,18 @@ int lad_tof_plots() {
     write_to_canvas_plane(hist_map_vec[0]["h_ToF_trigger_edepCut_bar"][i_hit_cut], outputFile,
                           Form("KIN/ToF_Trigger_edepCut/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
                           Form("ToF_Trigger_edepCut_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          hit_cuts[i_hit_cut].include_comp_plt);
+    write_to_canvas_plane(hist_map_vec[0]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut], outputFile,
+                          Form("KIN/Time_Avg_antiEdepCut/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          Form("Time_Avg_antiEdepCut_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          hit_cuts[i_hit_cut].include_comp_plt);
+    write_to_canvas_plane(hist_map_vec[0]["h_ToF_antiEdepCut_bar"][i_hit_cut], outputFile,
+                          Form("KIN/ToF_antiEdepCut/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          Form("ToF_antiEdepCut_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          hit_cuts[i_hit_cut].include_comp_plt);
+    write_to_canvas_plane(hist_map_vec[0]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut], outputFile,
+                          Form("KIN/ToF_Trigger_antiEdepCut/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
+                          Form("ToF_Trigger_antiEdepCut_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
                           hit_cuts[i_hit_cut].include_comp_plt);
   }
 

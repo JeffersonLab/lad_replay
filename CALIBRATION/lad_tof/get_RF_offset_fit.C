@@ -1,83 +1,39 @@
 #include "TCanvas.h"
 #include "TF1.h"
 #include "TFile.h"
+#include "TGraphErrors.h"
 #include "TH1F.h"
 #include "TLatex.h"
+#include "TLine.h"
 #include "TROOT.h"
-#include "TTree.h"
 #include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <vector>
 
 using namespace std;
 double mod_value = 4.00801; // RF period in ns
 
-void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_offset_errs_P,
-                vector<double> &rf_widths_P, vector<double> &rf_width_errs_P, vector<double> &rf_offsets_H,
-                vector<double> &rf_offset_errs_H, vector<double> &rf_widths_H, vector<double> &rf_width_errs_H,
-                TFile *out) {
+void processFitting(int run_num, const vector<int> &run_nums, vector<double> &rf_offsets_P,
+                    vector<double> &rf_offset_errs_P, vector<double> &rf_widths_P, vector<double> &rf_width_errs_P,
+                    vector<double> &rf_offsets_H, vector<double> &rf_offset_errs_H, vector<double> &rf_widths_H,
+                    vector<double> &rf_width_errs_H, TFile *inFile, TFile *out) {
   gROOT->SetBatch(kTRUE);
-  TFile *f = new TFile(Form("/lustre24/expphy/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/"
-                            "LAD_COIN_%d_0_0_50000.root",
-                            run_num));
-  TTree *T = (TTree *)f->Get("T");
 
-  vector<double> fit_ranges = {0.2, 0.25, 0.3}; // Multiple fit ranges to test
+  vector<double> fit_ranges    = {0.2, 0.25, 0.3}; // Multiple fit ranges to test
+  double fit_range_for_display = fit_ranges[fit_ranges.size() / 2];
 
-  // Helper lambda to get center 98th percentile range
-  auto getPercentileRange = [](TH1F *h, double &low, double &high) {
-    double sum    = h->Integral();
-    double cumsum = 0;
-    int low_bin = 0, high_bin = h->GetNbinsX();
+  // Read histograms from input file
+  TH1F *h_mod_P = (TH1F *)inFile->Get(Form("h_mod_P/h_mod_P_%d", run_num));
+  TH1F *h_mod_H = (TH1F *)inFile->Get(Form("h_mod_H/h_mod_H_%d", run_num));
+  TH1F *h_P     = (TH1F *)inFile->Get(Form("h_P/h_P_%d", run_num));
+  TH1F *h_H     = (TH1F *)inFile->Get(Form("h_H/h_H_%d", run_num));
 
-    // Find the 1st percentile
-    for (int i = 1; i <= h->GetNbinsX(); i++) {
-      cumsum += h->GetBinContent(i);
-      if (cumsum > sum * 0.01) {
-        low_bin = i;
-        break;
-      }
-    }
-
-    // Find the 99th percentile
-    cumsum = 0;
-    for (int i = h->GetNbinsX(); i >= 1; i--) {
-      cumsum += h->GetBinContent(i);
-      if (cumsum > sum * 0.01) {
-        high_bin = i;
-        break;
-      }
-    }
-
-    low  = h->GetBinCenter(low_bin);
-    high = h->GetBinCenter(high_bin);
-  };
-
-  // P arm - first pass to get raw histogram for percentile calculation
-  TH1F *h_P_temp = new TH1F(Form("h_P_temp_%d", run_num), "RF Offset P Temp", 1000, 0, 4000);
-  T->Draw(Form("P.ladkin.t_vertex-T.shms.pRF_tdcTime>>h_P_temp_%d", run_num), "g.evtyp==1");
-
-  double p_low, p_high;
-  getPercentileRange(h_P_temp, p_low, p_high);
-
-  // Create final P histogram with 98th percentile range
-  TH1F *h_P = new TH1F(Form("h_P_%d", run_num), "RF Offset P", 500, p_low, p_high);
-  T->Draw(Form("P.ladkin.t_vertex-T.shms.pRF_tdcTime>>h_P_%d", run_num), "g.evtyp==1");
-
-  // H arm - first pass to get raw histogram for percentile calculation
-  TH1F *h_H_temp = new TH1F(Form("h_H_temp_%d", run_num), "RF Offset H Temp", 1000, 0, 4000);
-  T->Draw(Form("H.ladkin.t_vertex-T.hms.hRF_tdcTime>>h_H_temp_%d", run_num), "g.evtyp==2");
-
-  double h_low, h_high;
-  getPercentileRange(h_H_temp, h_low, h_high);
-
-  // Create final H histogram with 98th percentile range
-  TH1F *h_H = new TH1F(Form("h_H_%d", run_num), "RF Offset H", 500, h_low, h_high);
-  T->Draw(Form("H.ladkin.t_vertex-T.hms.hRF_tdcTime>>h_H_%d", run_num), "g.evtyp==2");
-  TH1F *h_mod_P = new TH1F(Form("h_mod_P_%d", run_num), "RF Offset Mod P", 500, 0, mod_value);
-  T->Draw(Form("fmod(P.ladkin.t_vertex-T.shms.pRF_tdcTime,%.5f)>>h_mod_P_%d", mod_value, run_num), "g.evtyp==1");
-
-  TH1F *h_mod_H = new TH1F(Form("h_mod_H_%d", run_num), "RF Offset Mod H", 500, 0, mod_value);
-  T->Draw(Form("fmod(H.ladkin.t_vertex-T.hms.hRF_tdcTime,%.5f)>>h_mod_H_%d", mod_value, run_num), "g.evtyp==2");
+  if (!h_mod_P || !h_mod_H || !h_P || !h_H) {
+    cout << "Warning: Could not read all histograms for run " << run_num << endl;
+    return;
+  }
 
   // Extended histograms for fitting: range [-N, 2N]
   TH1F *h_mod_P_ext = new TH1F(Form("h_mod_P_ext_%d", run_num), "RF Offset Mod P Ext", 1500, -mod_value, 2 * mod_value);
@@ -116,8 +72,7 @@ void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_of
 
   // Perform multiple fits with different fit ranges
   vector<double> P_means, P_sigmas, P_norms;
-  vector<double> P_fit_lows, P_fit_highs;                           // Store fit ranges
-  double fit_range_for_display = fit_ranges[fit_ranges.size() / 2]; // Use middle fit range for display
+  vector<double> P_fit_lows, P_fit_highs;
 
   for (double fit_range : fit_ranges) {
     // Calculate fit range ±fit_range around peak
@@ -235,7 +190,7 @@ void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_of
     color_index++;
   }
 
-  // Annotate P canvas with fit results (center and width with uncertainties)
+  // Annotate P canvas with fit results
   TLatex latex_P;
   latex_P.SetNDC();
   latex_P.SetTextSize(0.04);
@@ -252,7 +207,7 @@ void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_of
 
   // Perform multiple fits with different fit ranges
   vector<double> H_means, H_sigmas, H_norms;
-  vector<double> H_fit_lows, H_fit_highs; // Store fit ranges
+  vector<double> H_fit_lows, H_fit_highs;
 
   for (double fit_range : fit_ranges) {
     // Calculate fit range ±fit_range around peak
@@ -369,15 +324,12 @@ void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_of
     color_index++;
   }
 
-  // Annotate H canvas with fit results (center and width with uncertainties)
+  // Annotate H canvas with fit results
   TLatex latex_H;
   latex_H.SetNDC();
   latex_H.SetTextSize(0.04);
   latex_H.DrawLatex(0.15, 0.85, Form("Center: %.4f #pm %.4f ns", rf_offset_H, rf_offset_H_err));
   latex_H.DrawLatex(0.15, 0.80, Form("Width: %.4f ns (avg)", sigma_H));
-
-  std::cout << "RF Offset P: " << rf_offset_P << " +/- " << rf_offset_P_err << " ns" << std::endl;
-  std::cout << "RF Offset H: " << rf_offset_H << " +/- " << rf_offset_H_err << " ns" << std::endl;
 
   // Calculate std of widths for error estimate
   double sigma_P_err = 0;
@@ -403,7 +355,7 @@ void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_of
   rf_widths_H.push_back(sigma_H);
   rf_width_errs_H.push_back(sigma_H_err);
 
-  // Write to ROOT file in separate directories
+  // Write to ROOT file
   TDirectory *dir_h_P = out->GetDirectory("h_P");
   if (!dir_h_P) {
     dir_h_P = out->mkdir("h_P");
@@ -437,46 +389,82 @@ void processRun(int run_num, vector<double> &rf_offsets_P, vector<double> &rf_of
   out->cd();
 }
 
-void get_RF_offset() {
+void get_RF_offset_fit(const char *run_list_file = "run_numbers_all.txt") {
 
-  vector<int> run_nums = {22225, 22235, 22290, 22291, 22353, 22354, 22449, 22450, 22478, 22562, 22574, 22586, 22587,
-                          22593, 22602, 22603, 22711, 22760, 22761, 22811, 22919, 22920, 22937, 22941, 23122, 23128,
-                          23237, 23238, 23247, 23381, 23414, 23415, 23425, 23432, 23448, 23449, 23471, 23472, 23490,
-                          23511, 23567, 23574, 23584, 23586, 23593, 23597, 23598, 23600, 23717, 23726, 23770, 23771};
-  // 23255, 23378,22841, 22722 are bad
-  // removed 23018, since no SHMS
+  // Suppress ROOT warnings
+  gErrorIgnoreLevel = kError;
+
+  // Filter parameters for stdev plots
+  double hminusp_center  = 3.5; // Center value for HminusP range
+  double hminusp_width   = 0.2; // +/- width around center
+  double uncertainty_max = 0.1; // Maximum uncertainty on data point
+  double width_max       = 0.4; // Maximum allowed width
+
+  // Read run numbers from file
+  vector<int> run_nums;
+  ifstream infile(run_list_file);
+  if (!infile.is_open()) {
+    cerr << "Error: Could not open run list file: " << run_list_file << endl;
+    cerr << "Please create a file with one run number per line." << endl;
+    return;
+  }
+
+  int run_num;
+  while (infile >> run_num) {
+    run_nums.push_back(run_num);
+  }
+  infile.close();
+
+  if (run_nums.empty()) {
+    cerr << "Error: No run numbers found in " << run_list_file << endl;
+    return;
+  }
+
+  cout << "Read " << run_nums.size() << " run numbers from " << run_list_file << endl;
   std::sort(run_nums.begin(), run_nums.end());
 
   vector<double> rf_offsets_P, rf_offsets_H, rf_offset_errs_P, rf_offset_errs_H;
   vector<double> rf_widths_P, rf_widths_H, rf_width_errs_P, rf_width_errs_H;
 
-  TFile *out = new TFile("rf_offset_results_comp.root", "RECREATE");
+  // Open input file with histograms
+  TFile *inFile = new TFile("rf_offset_histograms_all.root", "READ");
+  TFile *out    = new TFile("rf_offset_results_comp_all.root", "RECREATE");
 
+  int total_runs = run_nums.size();
+  int current    = 0;
   for (const auto &run_num : run_nums) {
-    cout << "Processing run " << run_num << "..." << endl;
-
-    // Call the core function to process each run
-    processRun(run_num, rf_offsets_P, rf_offset_errs_P, rf_widths_P, rf_width_errs_P, rf_offsets_H, rf_offset_errs_H,
-               rf_widths_H, rf_width_errs_H, out);
+    current++;
+    double percent = (100.0 * current) / total_runs;
+    cout << "\rProgress: " << current << "/" << total_runs << " (" << fixed << setprecision(1) << percent << "%) "
+         << flush;
+    processFitting(run_num, run_nums, rf_offsets_P, rf_offset_errs_P, rf_widths_P, rf_width_errs_P, rf_offsets_H,
+                   rf_offset_errs_H, rf_widths_H, rf_width_errs_H, inFile, out);
   }
+  cout << endl; // Final newline after progress completes
+
+  inFile->Close();
 
   // Define vertical line positions and labels
   struct VLine {
     double value;
     const char *label;
   };
-  std::vector<VLine> vlines = {{22500, "Switchboard failure"}, {23013.5, "HMS rotation"}, {23461.5, "SHMS rotation"}};
+  std::vector<VLine> vlines = {{23491, "Beam off"}, {22568, "Beam off"}, {23585, "Beam off"}, 
+                               {22229, "Beam off"}, {22359, "Beam off"}, {22489, "Q3 down"}, 
+                               {22715, "Beam off"}, {22825, "Beam off"}, {22938, "Beam off"}, 
+                               {23248, "Beam off"}, {23380, "Beam off"}, {23430, "Beam off"}, 
+                               {22570, "Beam off"}, {23719, "Beam off"}};
 
-  // Helper to draw vertical dashed lines between closest two points
+  // Helper to draw vertical dashed lines at specific run numbers
   auto draw_vlines = [&](TCanvas *canvas, TH1F *frame, const std::vector<int> &runs) {
     canvas->cd();
     double ymin = frame->GetYaxis()->GetXmin();
     double ymax = frame->GetYaxis()->GetXmax();
     for (const auto &vl : vlines) {
-      // Find closest two run indices
+      // Find if the vline value is between two consecutive runs
       int idx_left = -1, idx_right = -1;
       for (size_t i = 0; i < runs.size() - 1; i++) {
-        if (vl.value > runs[i] && vl.value < runs[i + 1]) {
+        if (vl.value >= runs[i] && vl.value <= runs[i + 1]) {
           idx_left  = i;
           idx_right = i + 1;
           break;
@@ -484,21 +472,27 @@ void get_RF_offset() {
       }
       if (idx_left == -1 || idx_right == -1)
         continue;
-      double xline = idx_left + 0.5; // halfway between
-      TLine *line  = new TLine(xline, ymin, xline, ymax);
+      
+      // Interpolate x position between the two runs
+      double x_pos = runs[idx_left] + (vl.value - runs[idx_left]) * 0.5;
+      
+      TLine *line = new TLine(x_pos, ymin, x_pos, ymax);
       line->SetLineColor(kBlack);
-      line->SetLineStyle(2); // dashed
-      line->SetLineWidth(2);
+      line->SetLineStyle(2);
+      line->SetLineWidth(1);
       line->Draw();
+      
       TLatex latex;
       latex.SetTextAlign(22);
-      latex.SetTextSize(0.0175);
+      latex.SetTextSize(0.018);
       latex.SetTextColor(kBlack);
+      latex.SetTextAngle(90);
       latex.SetNDC(false);
-      latex.DrawLatex(xline, 0.5 * (ymin + ymax), vl.label);
+      latex.DrawLatex(x_pos, ymin + 0.02 * (ymax - ymin), vl.label);
     }
     canvas->Update();
   };
+
   TCanvas *c_offsets_P      = new TCanvas("c_offsets_P", "RF Offsets P", 800, 600);
   TGraphErrors *g_offsets_P = new TGraphErrors();
 
@@ -519,7 +513,6 @@ void get_RF_offset() {
   TH1F *h_frame_offsets_P =
       new TH1F("h_frame_offsets_P", "RF Offsets P Arm", 100, run_nums.front() - x_margin, run_nums.back() + x_margin);
   h_frame_offsets_P->GetXaxis()->SetTitle("Run Number");
-
   h_frame_offsets_P->GetYaxis()->SetTitle("Offset (ns)");
   h_frame_offsets_P->SetStats(0);
   h_frame_offsets_P->Draw();
@@ -654,8 +647,8 @@ void get_RF_offset() {
   g_offsets_diff->SetLineColor(kBlack);
   g_offsets_diff->SetMarkerStyle(20);
 
-  TH1F *h_frame_offsets_diff =
-      new TH1F("h_frame_offsets_diff", "HMS - SHMS (mod N)", 100, run_nums.front() - x_margin, run_nums.back() + x_margin);
+  TH1F *h_frame_offsets_diff = new TH1F("h_frame_offsets_diff", "HMS - SHMS (mod N)", 100, run_nums.front() - x_margin,
+                                        run_nums.back() + x_margin);
   h_frame_offsets_diff->GetXaxis()->SetTitle("Run Number");
   h_frame_offsets_diff->GetYaxis()->SetTitle("HMS - SHMS Offset (ns)");
   h_frame_offsets_diff->SetStats(0);
@@ -668,30 +661,93 @@ void get_RF_offset() {
   h_frame_offsets_diff->GetYaxis()->SetRangeUser(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin));
   c_offsets_diff->Write();
 
-  // Compute stdev of HMS - SHMS offsets for error inflation
-  double diff_mean = 0;
-  for (double d : diffs) {
-    diff_mean += d;
+  // Compute stdev of HMS - SHMS offsets for error inflation, using only filtered values
+  std::vector<double> filtered_diffs;
+  for (size_t i = 0; i < diffs.size(); i++) {
+    double diff = diffs[i];
+    bool within_hminusp_range = (diff >= hminusp_center - hminusp_width) && (diff <= hminusp_center + hminusp_width);
+    bool width_ok_P = rf_widths_P[i] < width_max;
+    bool width_ok_H = rf_widths_H[i] < width_max;
+    
+    if (within_hminusp_range && width_ok_P && width_ok_H) {
+      filtered_diffs.push_back(diff);
+    }
   }
-  diff_mean /= diffs.size();
+  
+  double diff_stdev = 0;
+  if (!filtered_diffs.empty()) {
+    double diff_mean = 0;
+    for (double d : filtered_diffs) {
+      diff_mean += d;
+    }
+    diff_mean /= filtered_diffs.size();
 
-  double diff_var = 0;
-  for (double d : diffs) {
-    diff_var += (d - diff_mean) * (d - diff_mean);
+    double diff_var = 0;
+    for (double d : filtered_diffs) {
+      diff_var += (d - diff_mean) * (d - diff_mean);
+    }
+    diff_stdev = sqrt(diff_var / filtered_diffs.size());
   }
-  double diff_stdev = sqrt(diff_var / diffs.size());
+  diff_stdev = 0; // Set to 0 for now, can be adjusted later if needed
 
-  // Create plot for P arm RF offsets with inflated errors
+  // Create plot for HMS - SHMS offset (filtered, passing cuts)
+  TCanvas *c_offsets_diff_filtered      = new TCanvas("c_offsets_HminusP_filtered", "HMS - SHMS Offsets (Filtered)", 800, 600);
+  TGraphErrors *g_offsets_diff_filtered = new TGraphErrors();
+
+  point_idx = 0;
+  for (size_t i = 0; i < diffs.size(); i++) {
+    double diff = diffs[i];
+    bool within_hminusp_range = (diff >= hminusp_center - hminusp_width) && (diff <= hminusp_center + hminusp_width);
+    bool width_ok_P = rf_widths_P[i] < width_max;
+    bool width_ok_H = rf_widths_H[i] < width_max;
+    
+    if (within_hminusp_range && width_ok_P && width_ok_H) {
+      if (fabs(rf_offsets_H[i]) > 0.01 && fabs(rf_offsets_P[i]) > 0.01) {
+        double err = sqrt(rf_offset_errs_H[i] * rf_offset_errs_H[i] + rf_offset_errs_P[i] * rf_offset_errs_P[i]);
+        g_offsets_diff_filtered->SetPoint(point_idx, run_nums[i], diff);
+        g_offsets_diff_filtered->SetPointError(point_idx, 0, err);
+        point_idx++;
+      }
+    }
+  }
+
+  g_offsets_diff_filtered->SetMarkerColor(kBlack);
+  g_offsets_diff_filtered->SetLineColor(kBlack);
+  g_offsets_diff_filtered->SetMarkerStyle(20);
+
+  TH1F *h_frame_offsets_diff_filtered = new TH1F("h_frame_offsets_diff_filtered", "HMS - SHMS (Filtered)", 100, 
+                                                  run_nums.front() - x_margin, run_nums.back() + x_margin);
+  h_frame_offsets_diff_filtered->GetXaxis()->SetTitle("Run Number");
+  h_frame_offsets_diff_filtered->GetYaxis()->SetTitle("HMS - SHMS Offset (ns)");
+  h_frame_offsets_diff_filtered->SetStats(0);
+  h_frame_offsets_diff_filtered->Draw();
+  g_offsets_diff_filtered->Draw("P same");
+  gPad->Modified();
+  gPad->Update();
+  ymin = g_offsets_diff_filtered->GetYaxis()->GetXmin();
+  ymax = g_offsets_diff_filtered->GetYaxis()->GetXmax();
+  h_frame_offsets_diff_filtered->GetYaxis()->SetRangeUser(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin));
+  c_offsets_diff_filtered->Write();
+
+  // Create plot for HMS - SHMS offset (mod mod_value)
   TCanvas *c_offsets_P_stdev      = new TCanvas("c_offsets_P_stdev", "RF Offsets P (stdev)", 800, 600);
   TGraphErrors *g_offsets_P_stdev = new TGraphErrors();
 
   point_idx = 0;
   for (size_t i = 0; i < rf_offsets_P.size(); i++) {
     if (fabs(rf_offsets_P[i]) > 0.01) {
-      double err = sqrt(rf_offset_errs_P[i] * rf_offset_errs_P[i] + diff_stdev * diff_stdev);
-      g_offsets_P_stdev->SetPoint(point_idx, run_nums[i], rf_offsets_P[i]);
-      g_offsets_P_stdev->SetPointError(point_idx, 0, err);
-      point_idx++;
+      // Check filter conditions
+      double diff = diffs[i];
+      double err  = sqrt(rf_offset_errs_P[i] * rf_offset_errs_P[i] + diff_stdev * diff_stdev);
+      bool within_hminusp_range = (diff >= hminusp_center - hminusp_width) && (diff <= hminusp_center + hminusp_width);
+      bool uncertainty_ok       = err < uncertainty_max;
+      bool width_ok             = rf_widths_P[i] < width_max;
+
+      if (within_hminusp_range && uncertainty_ok && width_ok) {
+        g_offsets_P_stdev->SetPoint(point_idx, run_nums[i], rf_offsets_P[i]);
+        g_offsets_P_stdev->SetPointError(point_idx, 0, err);
+        point_idx++;
+      }
     }
   }
 
@@ -699,8 +755,8 @@ void get_RF_offset() {
   g_offsets_P_stdev->SetLineColor(kBlue);
   g_offsets_P_stdev->SetMarkerStyle(20);
 
-  TH1F *h_frame_offsets_P_stdev =
-      new TH1F("h_frame_offsets_P_stdev", "RF Offsets P Arm (stdev)", 100, run_nums.front() - x_margin, run_nums.back() + x_margin);
+  TH1F *h_frame_offsets_P_stdev = new TH1F("h_frame_offsets_P_stdev", "RF Offsets P Arm (stdev)", 100,
+                                           run_nums.front() - x_margin, run_nums.back() + x_margin);
   h_frame_offsets_P_stdev->GetXaxis()->SetTitle("Run Number");
   h_frame_offsets_P_stdev->GetYaxis()->SetTitle("Offset (ns)");
   h_frame_offsets_P_stdev->SetStats(0);
@@ -721,10 +777,18 @@ void get_RF_offset() {
   point_idx = 0;
   for (size_t i = 0; i < rf_offsets_H.size(); i++) {
     if (fabs(rf_offsets_H[i]) > 0.01) {
-      double err = sqrt(rf_offset_errs_H[i] * rf_offset_errs_H[i] + diff_stdev * diff_stdev);
-      g_offsets_H_stdev->SetPoint(point_idx, run_nums[i], rf_offsets_H[i]);
-      g_offsets_H_stdev->SetPointError(point_idx, 0, err);
-      point_idx++;
+      // Check filter conditions
+      double diff               = diffs[i];
+      double err                = sqrt(rf_offset_errs_H[i] * rf_offset_errs_H[i] + diff_stdev * diff_stdev);
+      bool within_hminusp_range = (diff >= hminusp_center - hminusp_width) && (diff <= hminusp_center + hminusp_width);
+      bool uncertainty_ok       = err < uncertainty_max;
+      bool width_ok             = rf_widths_H[i] < width_max;
+
+      if (within_hminusp_range && uncertainty_ok && width_ok) {
+        g_offsets_H_stdev->SetPoint(point_idx, run_nums[i], rf_offsets_H[i]);
+        g_offsets_H_stdev->SetPointError(point_idx, 0, err);
+        point_idx++;
+      }
     }
   }
 
@@ -732,8 +796,8 @@ void get_RF_offset() {
   g_offsets_H_stdev->SetLineColor(kRed);
   g_offsets_H_stdev->SetMarkerStyle(20);
 
-  TH1F *h_frame_offsets_H_stdev =
-      new TH1F("h_frame_offsets_H_stdev", "RF Offsets H Arm (stdev)", 100, run_nums.front() - x_margin, run_nums.back() + x_margin);
+  TH1F *h_frame_offsets_H_stdev = new TH1F("h_frame_offsets_H_stdev", "RF Offsets H Arm (stdev)", 100,
+                                           run_nums.front() - x_margin, run_nums.back() + x_margin);
   h_frame_offsets_H_stdev->GetXaxis()->SetTitle("Run Number");
   h_frame_offsets_H_stdev->GetYaxis()->SetTitle("Offset (ns)");
   h_frame_offsets_H_stdev->SetStats(0);
@@ -746,6 +810,124 @@ void get_RF_offset() {
   h_frame_offsets_H_stdev->GetYaxis()->SetRangeUser(ymin - 0.1 * (ymax - ymin), ymax + 0.1 * (ymax - ymin));
   draw_vlines(c_offsets_H_stdev, h_frame_offsets_H_stdev, run_nums);
   c_offsets_H_stdev->Write();
+
+  // Compute statistics for specified run ranges
+  struct RunRangeStats {
+    int run_low, run_high;
+    int count_P = 0, count_H = 0;
+    double avg_P = 0, avg_H = 0;
+    double stdev_P = 0, stdev_H = 0;
+  };
+
+  std::vector<RunRangeStats> ranges = {
+    {22178, 22480},
+    {22560, 22660},
+    {22661, 22711},
+    {22745, 23590},
+    {23597, 23795}
+  };
+
+  for (auto &range : ranges) {
+    std::vector<double> values_P, values_H;
+
+    // Collect values for P arm
+    for (size_t i = 0; i < rf_offsets_P.size(); i++) {
+      if (run_nums[i] >= range.run_low && run_nums[i] <= range.run_high) {
+        if (fabs(rf_offsets_P[i]) > 0.01) {
+          double diff = diffs[i];
+          double err_P = sqrt(rf_offset_errs_P[i] * rf_offset_errs_P[i] + diff_stdev * diff_stdev);
+          bool within_hminusp_range = (diff >= hminusp_center - hminusp_width) && (diff <= hminusp_center + hminusp_width);
+          bool uncertainty_ok = err_P < uncertainty_max;
+          bool width_ok = rf_widths_P[i] < width_max;
+          
+          if (within_hminusp_range && uncertainty_ok && width_ok) {
+            values_P.push_back(rf_offsets_P[i]);
+            range.count_P++;
+          }
+        }
+      }
+    }
+
+    // Collect values for H arm
+    for (size_t i = 0; i < rf_offsets_H.size(); i++) {
+      if (run_nums[i] >= range.run_low && run_nums[i] <= range.run_high) {
+        if (fabs(rf_offsets_H[i]) > 0.01) {
+          double diff = diffs[i];
+          double err_H = sqrt(rf_offset_errs_H[i] * rf_offset_errs_H[i] + diff_stdev * diff_stdev);
+          bool within_hminusp_range = (diff >= hminusp_center - hminusp_width) && (diff <= hminusp_center + hminusp_width);
+          bool uncertainty_ok = err_H < uncertainty_max;
+          bool width_ok = rf_widths_H[i] < width_max;
+          
+          if (within_hminusp_range && uncertainty_ok && width_ok) {
+            values_H.push_back(rf_offsets_H[i]);
+            range.count_H++;
+          }
+        }
+      }
+    }
+
+    // Calculate averages
+    if (!values_P.empty()) {
+      for (double v : values_P) {
+        range.avg_P += v;
+      }
+      range.avg_P /= values_P.size();
+      
+      for (double v : values_P) {
+        range.stdev_P += (v - range.avg_P) * (v - range.avg_P);
+      }
+      range.stdev_P = sqrt(range.stdev_P / values_P.size());
+    }
+
+    if (!values_H.empty()) {
+      for (double v : values_H) {
+        range.avg_H += v;
+      }
+      range.avg_H /= values_H.size();
+      
+      for (double v : values_H) {
+        range.stdev_H += (v - range.avg_H) * (v - range.avg_H);
+      }
+      range.stdev_H = sqrt(range.stdev_H / values_H.size());
+    }
+  }
+
+  // Create canvas with statistics table
+  TCanvas *c_stats = new TCanvas("c_range_statistics", "Range Statistics", 1000, 600);
+  c_stats->cd();
+
+  double y_pos = 0.95;
+  double line_height = 0.08;
+  
+  TLatex latex;
+  latex.SetNDC();
+  latex.SetTextSize(0.018);
+  latex.SetTextFont(62);
+  
+  // Header
+  latex.DrawLatex(0.05, y_pos, "Run Range");
+  latex.DrawLatex(0.18, y_pos, "N(P)");
+  latex.DrawLatex(0.28, y_pos, "N(H)");
+  latex.DrawLatex(0.38, y_pos, "Avg P (ns)");
+  latex.DrawLatex(0.55, y_pos, "Avg H (ns)");
+  latex.DrawLatex(0.72, y_pos, "Stdev P (ns)");
+  latex.DrawLatex(0.88, y_pos, "Stdev H (ns)");
+  
+  latex.SetTextFont(42);
+  y_pos -= line_height;
+  
+  for (const auto &range : ranges) {
+    latex.DrawLatex(0.05, y_pos, Form("%d-%d", range.run_low, range.run_high));
+    latex.DrawLatex(0.18, y_pos, Form("%d", range.count_P));
+    latex.DrawLatex(0.28, y_pos, Form("%d", range.count_H));
+    latex.DrawLatex(0.38, y_pos, Form("%.4f", range.avg_P));
+    latex.DrawLatex(0.55, y_pos, Form("%.4f", range.avg_H));
+    latex.DrawLatex(0.72, y_pos, Form("%.4f", range.stdev_P));
+    latex.DrawLatex(0.88, y_pos, Form("%.4f", range.stdev_H));
+    y_pos -= line_height;
+  }
+  
+  c_stats->Write();
 
   out->Close();
 }
