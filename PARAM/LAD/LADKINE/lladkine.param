@@ -13,4 +13,12 @@ lglobal_time_offset = -1710 ;ns This isn't being used yet
 
 ltrk_dt_cut = 10
 
-l_rf_offset =   0,   0
+l_nr_rf_offsets = 5; number of rows on vector below
+;               run_start       SHMS        HMS
+l_rf_offset =   22013,          -0.15,      -3.65,
+                22178,          -0.34,      -3.84,
+                22560,          -0.26,      -1.89,
+                22661,          -0.34,      -3.82,
+                22745,          -0.28,      -1.82
+
+l_rf_period = 4.00801
