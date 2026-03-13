@@ -45,7 +45,8 @@ lladhodo_plane_names = "000 001 100 101 200 REFBAR"
       lladhodo_101_spacing = 22.0
       lladhodo_200_spacing = 22.0
       lladhodo_REFBAR_spacing = 22.0
-
+; y offset for each wall, placeholder not inuse
+      lladhodo_dy = 3.429 1.463 2.232 1.538 1.538 0
 ; X,Y positions of ladhodoscope paddles
       lladhodo_000_top  =     193.75
                               196.65
