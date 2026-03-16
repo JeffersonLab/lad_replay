@@ -20,14 +20,14 @@ lgem_m0_apvmap = 1
 lgem_m1_apvmap = 1
 
 ; Positions, all units in cm
-lgem_m0_position = -0.205624, 1.33877, 79.0234; Position from survey
-lgem_m0_angle = 126.808, -0.00173414; deg 
-lgem_m0_rotation = -19.4683, 0.802703, 0.380487; deg
+lgem_m0_position =  -0.035012, 0.736886, 84.7974; 2nd alignment pass
+lgem_m0_angle = 126.596, 0.538376; deg 
+lgem_m0_rotation = 1.3244,0.991763, 0.247536; deg
 
 
-lgem_m1_position = -0.00165544, 0.259285, 96.2848
-lgem_m1_angle = 127, 0.587734; deg 
-lgem_m1_rotation = -20.8754 , -0.189912, 0.561991; deg
+lgem_m1_position = -0.000403268, 1.32821, 104.104
+lgem_m1_angle = 126.545, -0.0137268; deg 
+lgem_m1_rotation = 1.35708 ,0.860786,  -0.0537964; deg
 
 lgem_d0_cut = 20000.0; cm
 
