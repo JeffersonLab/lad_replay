@@ -400,6 +400,10 @@ void replay_production_lad_spec(int RunNumber = 0, int MaxEvent = 0, int run_typ
 
   LADFilteredStreamBuf ladbuf(std::cout);
   ladbuf.addFilterString("HitList(event");
+
+  //Print timing info to terminal at end of run
+  analyzer->EnableBenchmarks(kTRUE);
+
   // Start the actual analysis.
   analyzer->Process(run);
   // Create report file from template

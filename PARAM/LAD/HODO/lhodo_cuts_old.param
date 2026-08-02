@@ -1,0 +1,157 @@
+; LAD ladhodo Cuts parameters
+; Coppied from HMS ladhodo
+; https://hallcweb.jlab.org/elogs/A1n-d2n+Combined+Analysis/41
+;
+
+is_mc=0
+; Cosmic flag for beta calculation
+lladcosmicflag=0
+lladhodo_UseSampWaveform=0
+lladhodo_OutputSampWaveform=1
+
+; for now manually set the FADC mode
+;  1 == Use the pulse int - pulse ped
+;  2 == Use the sample integral - known ped
+;  3 == Use the sample integral - sample ped
+; if not set then defaults to use the raw pulse integral
+lladhodo_adc_mode=1
+
+;Tolerance between hodo hit position and track position
+lladhodo_track_tolerance_vert = 40000 ;cm
+lladhodo_track_tolerance_horiz = 500 ;cm
+lladhodo_TDC_match_window = 50 ;ns
+
+; lstart_time_center  center of allowed time window (ns)
+lladstart_time_center = 32.
+; lstart_time_slop    1/2 width of time window
+lladstart_time_slop = 100.
+
+; lscin_tdc_min min/max L.hod.GoodTop(Btm)TdcTimeUnCorr
+; note that the params below are factor of 10 higher than
+; what is present in the respective leaf
+lladhodo_tdc_min = 16000
+lladhodo_tdc_max = 21500
+
+; lladhodo_tdc_to_time   scin tdc time per channel
+lladhodo_tdc_to_time = 0.09766   ; See HC Log Entry 3574348
+
+; tof and you figured out good values
+lladtof_tolerance = 10.0
+
+; lad_tof_params
+; hnum_scin_counters, lladhodo_zpos, lladhodo_center_coord, lladhodo_width
+; are all calculated within h_init_scin
+;    lladhodo_top_coord and lladhodo_btm_coord are not yet used
+
+lladhodo_slop     =    2.,  2.,  2.,  2., 2., 2.
+
+; lladhodo_tdc_offset is array of time offsets for all paddles in a plane
+;   to move the tdc to between 0 and 4000 channels.
+;lladhodo_tdc_offset = 1580, 1580, 1580, 1580, 1580
+
+lladhodo_tdc_offset = 1580, 1580, 1580, 1580, 1580, 1580
+hladhodo_tdc_offset = 31700, 31700, 31700, 31700, 31700, 31700
+pladhodo_tdc_offset = 31700, 31700, 31700, 31700, 31700, 31700
+
+lladhodo_adc_tdc_offset = 1880, 1880, 1880, 1880, 1880, 1880
+pladhodo_adc_tdc_offset = 1950, 1950, 1950, 1950, 1950, 1950
+hladhodo_adc_tdc_offset = 1880, 1880, 1880, 1880, 1880, 1880
+
+;Offset changed with HCANA update (April 2021)
+;lladhodo_adc_tdc_offset = 171., 171., 171., 171., 171., 171.
+
+; HMS ladhodoscope Parameter File Containing TimeWindow Min/Max Cuts
+;Startup of XEM 2022 with run 4402
+; variables = H.hod.(1x, 1y, 2x, 2y).GoodBtm(Top)AdcTdcDiffTime
+;                              000        001         100           101           200         REFBAR     
+lladhodo_TopAdcTimeWindowMin = -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      -100.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+														   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,     
+														   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0         
+
+
+;                              000        001         100           101           200      REFBAR 
+lladhodo_TopAdcTimeWindowMax = 100.0,    100.0,    100.0,      100.0,      100.0,      100.0,
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+														   100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+														   100.0,    100.0,    100.0,      100.0,      100.0,      0.0      
+
+;                              000        001         100           101           200         REFBAR     
+lladhodo_BtmAdcTimeWindowMin = -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      -100.0,
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+			    									   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+														   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0,    
+														   -100.0,    -100.0,    -100.0,      -100.0,      -100.0,      0.0     
+			  
+;                              000        001         100           101           200      REFBAR 
+lladhodo_BtmAdcTimeWindowMax = 100.0,    100.0,    100.0,      100.0,      100.0,      100.0,
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0,    
+													     100.0,    100.0,    100.0,      100.0,      100.0,      0.0      
+														
+
+;
+lladhodo_top_ped_limit = 1000,    1000,    1000,    1000,    1000,     1000,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+											   1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0
+
+;
+lladhodo_btm_ped_limit = 1000,    1000,    1000,    1000,    1000,     1000,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+											   1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0,
+                         1000,    1000,    1000,    1000,    1000,     0
+
+lladhodo_vel_light =   15.0,    15.0,    15.0,    15.0,    15.0,   15.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0,
+										   15.0,    15.0,    15.0,    15.0,    15.0,    0.0
+                   

@@ -23,7 +23,7 @@ const double fit_func_xmin = 2.2; // Minimum x value for fit function
 const double fit_func_xmax = 6.0; // Maximum x value for fit function
 
 const double quad_fit_param[2] = {5.31637, 12.9101};
-double cut_line_pt1[2]   = {2, 120}; // Point 1 for cut line
+double cut_line_pt1[2]         = {2, 120}; // Point 1 for cut line
 const double cut_line_pt2[2]   = {6, 0};   // Point 2 for cut line
 
 const double true_adc_MeV = 80; // True ADC value in MeV
@@ -52,6 +52,33 @@ double edep_fit_func_profile(double *x, double *par) {
   return par[0] * y;
 }
 
+// double edep_fit_func_profile_quad_back(double *x, double *par) {
+//   double y;
+//   // Fit two quadratics: one for x < x_mid, one for x >= x_mid
+//   // par[0]: scaling
+//   // par[1]: a_left, par[2]: b_left, par[3]: c_left
+//   // par[4]: a_right, par[5]: b_right, par[6]: c_right
+//   double x_mid = 3.1;
+//   double x1, y1, x2, y2, a;
+//   if (x[0] < x_mid) {
+//     // Quadratic passing through (1,20) and (3.3,190)
+//     // One free parameter
+//     x1 = 1.0, y1 = 20.0;
+//     x2 = x_mid, y2 = 190.0;
+//     a = quad_fit_param[0];
+//   } else {
+//     // Quadratic passing through (3.3,190) and (7,20)
+//     x1 = x_mid, y1 = 190.0;
+//     x2 = 6.0, y2 = 10.0;
+//     a = quad_fit_param[1];
+//   }
+//   // double a = par[0];
+//   double b_tmp = (y2 - y1 - a * (x2 * x2 - x1 * x1)) / (x2 - x1);
+//   y            = a * (x[0] * x[0] - x1 * x1) + b_tmp * (x[0] - x1) + y1;
+
+//   return y * par[0]; // Scale by par[0]
+// }
+
 double edep_fit_func_profile_quad_back(double *x, double *par) {
   double y;
   // Fit two quadratics: one for x < x_mid, one for x >= x_mid
@@ -63,13 +90,15 @@ double edep_fit_func_profile_quad_back(double *x, double *par) {
   if (x[0] < x_mid) {
     // Quadratic passing through (1,20) and (3.3,190)
     // One free parameter
-    x1 = 1.0, y1 = 20.0;
-    x2 = x_mid, y2 = 190.0;
+    x1 = 0.8, y1 = 116;
+    x2 = x_mid, y2 = 210.0;
+    // a = par[1];
     a = quad_fit_param[0];
   } else {
     // Quadratic passing through (3.3,190) and (7,20)
-    x1 = x_mid, y1 = 190.0;
-    x2 = 6.0, y2 = 10.0;
+    x1 = x_mid, y1 = 210;
+    x2 = 3.0, y2 = 107;
+    // a = par[4];
     a = quad_fit_param[1];
   }
   // double a = par[0];
@@ -102,13 +131,13 @@ void fit_lad_edep() {
   // Set ROOT to batch mode to suppress GUI
   gROOT->SetBatch(kTRUE);
   // TFile *file = TFile::Open("lad_edep_plots_22609_H.root", "READ");
-  TFile *file = TFile::Open("lad_edep_plots_new_timing_H.root", "READ");
+  TFile *file = TFile::Open("lad_edep_plots_FT_post_gain_H.root", "READ");
   if (!file || file->IsZombie()) {
     printf("Error: Cannot open ROOT file.\n");
     return;
   }
 
-  TFile *outfile = TFile::Open("fit_lad_edep_new_timing.root", "RECREATE");
+  TFile *outfile = TFile::Open("fit_lad_edep_FT_post_gain.root", "RECREATE");
   if (!outfile || outfile->IsZombie()) {
     printf("Error: Cannot create output ROOT file.\n");
     file->Close();
@@ -163,14 +192,14 @@ void fit_lad_edep() {
             // Calculate the average y value of the histogram for this x bin
             // You can use the TH2::ProjectionY method to get the Y projection for a given X bin,
             // then use GetMean() on the resulting TH1D to get the average Y for that X bin.
-            TH1D* projY = hist->ProjectionY("_py", binx, binx);
+            TH1D *projY   = hist->ProjectionY("_py", binx, binx);
             double y_mean = (projY->GetEntries() > 0) ? projY->GetMean() : 0;
             delete projY;
-            TH1D *projX = hist->ProjectionX("_px", binx, binx);
+            TH1D *projX   = hist->ProjectionX("_px", binx, binx);
             double x_mean = (projX->GetEntries() > 0) ? projX->GetMean() : 0;
             delete projX;
 
-            double x1 = x_mean, y1 = y_mean*4;
+            double x1 = x_mean, y1 = y_mean * 4;
             double x2 = cut_line_pt2[0], y2 = cut_line_pt2[1];
             double m      = (y2 - y1) / (x2 - x1);
             double b      = y1 - m * x1;
@@ -189,7 +218,7 @@ void fit_lad_edep() {
 
           hist->Draw("colz");
           if (profile) {
-            // profile->Draw("same");
+            profile->Draw("same");
             TF1 *edep_func;
             if (i_plane % 2 == 0) {
               edep_func = new TF1("edep_fit_func_profile_quad_front", edep_fit_func_profile_quad_front, fit_func_xmin,
@@ -250,9 +279,8 @@ void fit_lad_edep() {
       if (i_plane == 0) {
         if (i_paddle == 0) {
           outPARAM << true_adc_MeV / raw_adc_max[0][i_plane][i_paddle];
-        }
-        else{
-        outPARAM << setw(30) << true_adc_MeV / raw_adc_max[0][i_plane][i_paddle];
+        } else {
+          outPARAM << setw(30) << true_adc_MeV / raw_adc_max[0][i_plane][i_paddle];
         }
       } else {
         outPARAM << ", " << setw(15) << true_adc_MeV / raw_adc_max[0][i_plane][i_paddle];
@@ -271,8 +299,7 @@ void fit_lad_edep() {
       if (i_plane == 0) {
         if (i_paddle == 0) {
           outPARAM << true_adc_MeV / raw_adc_max[1][i_plane][i_paddle];
-        }
-        else{
+        } else {
           outPARAM << setw(30) << true_adc_MeV / raw_adc_max[1][i_plane][i_paddle];
         }
       } else {

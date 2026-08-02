@@ -21,9 +21,9 @@
 
 using namespace std;
 
-const int MAX_DATA     = 100;
-const int MAX_DATA_GEM = 1000;
-const int CACHE_SIZE   = 50 * 1024 * 1024; // 50 MB cache size
+const int MAX_DATA            = 100;
+const int MAX_DATA_GEM        = 1000;
+const int CACHE_SIZE          = 50 * 1024 * 1024; // 50 MB cache size
 const int MAX_EVTS_PER_THREAD = 500000;
 
 struct hist_params {
@@ -35,7 +35,7 @@ struct hist_params {
 const hist_params time_params    = {100, 1700.0, 2000.0};
 const hist_params dt_params      = {200, -2, 8};
 const hist_params adc_amp_params = {200, 0.0, 400.0};
-const hist_params adc_int_params = {200, 0.0, 40.0};
+const hist_params adc_int_params = {200, 0.0, 100.0};
 
 const double TDC2NS = 0.09766; // TDC to ns conversion factor
 const double ADC2NS = 0.0625;  // ADC to ns conversion factor
@@ -360,14 +360,252 @@ int lad_edep_plots() {
       // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/bad_timing/LAD_COIN_22611_0_6_-1.root",
       // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/bad_timing/LAD_COIN_22613_0_6_-1.root",
       // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/bad_timing/LAD_COIN_22615_0_6_-1.root",
-      "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23105_0_6_-1.root",
-      "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23106_0_6_-1.root",
-      "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23107_0_6_-1.root",
-      "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23108_0_6_-1.root",
+      // "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23105_0_6_-1.root",
+      // "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23106_0_6_-1.root",
+      // "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23107_0_6_-1.root",
+      // "/cache/hallc/c-lad/analysis/ehingerl/online_v1/LAD_COIN_23108_0_6_-1.root",
+
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_6_6_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22612_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22844_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_6_6_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_6_6_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_6_6_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_6_6_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_6_6_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_6_6_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_6_6_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_6_6_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_6_6_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_6_6_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22843_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_6_6_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_5_5_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_2_2_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22843_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_1_1_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_3_3_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_3_3_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_2_2_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_5_5_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_5_5_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_2_2_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22844_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_5_5_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_3_3_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_3_3_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_2_2_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_4_4_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_2_2_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_5_5_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22844_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_1_1_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_4_4_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_2_2_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_5_5_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_4_4_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_4_4_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_3_3_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_5_5_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22844_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22844_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_22842_4_4_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_0_0_-1.root",
+      // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_5_5_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_1_1_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23105_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_5_5_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_1_1_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_5_5_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_1_1_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_1_1_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23109_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_5_5_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_1_1_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23106_0_0_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_3_3_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23107_2_2_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_4_4_-1.root",
+      "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/"
+      "LAD_COIN_23108_5_5_-1.root",
+
   };
+  /*
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22612_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22844_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22843_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_6_6_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22843_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22610_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22844_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22844_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22611_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22615_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22609_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22844_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22844_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22842_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22614_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_22613_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23105_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23109_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_5_5_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_1_1_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23106_0_0_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_3_3_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23107_2_2_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_4_4_-1.root
+/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/optics_new_timing/LAD_COIN_23108_5_5_-1.root
+  */
+
   // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22616_0_21_-1.root"};
   // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1_1.root"};
-  TString outputFileName = Form("lad_edep_plots_new_timing_%c.root", spec_prefix);
+  TString outputFileName = Form("lad_edep_plots_FT_post_gain_%c.root", spec_prefix);
 
   // Create a TChain to combine the trees from multiple files
   TChain *chain = new TChain("T");

@@ -272,7 +272,7 @@ SLOT=20
         15,      6,     1,       0!    l6x01A+ !Refbar 1
 
 SLOT=31
-REFCHAN=112
+REFCHAN=113
 ! chan   plane     bar     sig
         0,       1,      1,      3!    l1x01T-
         1,       1,      2,      3!    l1x02T-

@@ -4,6 +4,7 @@
 lgem_chanmap_file = "MAPS/LAD/DETEC/GEM/lgem_chan.map" ; 
 ;If using sim (is_mc=1), chanmap must be "MAPS/LAD/DETEC/GEM/lgem_chan_mc.map"
 
+lgem_pedestal_mode = 0 ; temp test
 lgem_pedfile = "PARAM/LAD/GEM/gem_ped_22528.dat" ;
 lgem_cmfile = "PARAM/LAD/GEM/CommonModeRange_22528.txt" ; 
 
@@ -30,17 +31,7 @@ lgem_m1_position = -0.0337049, 1.33553, 105.913
 lgem_m1_angle = 127, 0.000285756; deg 
 lgem_m1_rotation = -0.322357 ,0.0888885,  -0.0762915; deg
 
-; SHMS at 13.5 deg
-;lgem_m0_position =  -0.0591264, 0.73661, 84.9545; 2nd alignment pass
-;lgem_m0_angle = 126.585, 0.538076; deg 
-;lgem_m0_rotation = 1.62673,0.984291, 0.247989; deg
-
-
-;lgem_m1_position = -0.0415148, 1.32821, 104.098
-;lgem_m1_angle = 126.546, -0.0137295; deg 
-;lgem_m1_rotation = 1.36714 ,0.860878,  -0.0538969; deg
-
-lgem_d0_cut = 200; cm
+lgem_d0_cut = 20.0; cm
 
 
 ; strip angles

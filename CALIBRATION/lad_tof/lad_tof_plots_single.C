@@ -1,10 +1,9 @@
 // Lucas Ehinger
 // General LAD hodo plotting script
-// Multithreaded, to speed up the processing
+// Single-threaded version
 // Not great when it comes to memory management (requires lots of memory). No errors or major memory leaks, just
 // duplication of memory across threads since root doesn't like mutexes. Multi-threading with ROOT (which is inherently
 // not thread-safe) is hard, and I wasn't smart enough to do it elegantly, but this works.
-#include </usr/lib/gcc/x86_64-redhat-linux/11/include/omp.h>
 #include <TCanvas.h>
 #include <TChain.h>
 #include <TFile.h>
@@ -17,7 +16,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <thread>
 #include <vector>
 
 using namespace std;
@@ -34,7 +32,7 @@ struct hist_params {
 const hist_params time_params      = {70, 1725.0, 1825.0};
 const hist_params tof_params       = {140, 20, 150};
 const hist_params tof_per_m_params = {200, -10, 10};
-const hist_params tof_params_full  = {500, -50, 50};
+const hist_params tof_params_full  = {100, -50, 50};
 
 const double TDC2NS = 0.09766; // TDC to ns conversion factor
 const double ADC2NS = 0.0625;  // ADC to ns conversion factor
@@ -42,7 +40,7 @@ const double ADC2NS = 0.0625;  // ADC to ns conversion factor
 const int MINT_EVTS_PER_THREAD = 5000000;
 bool process_by_file           = true;
 
-const double edep_cut     = 10;  // MeV
+const double edep_cut     = 70;  // mV
 const double electron_cut = 0.8; // normalized electron energy cut for cal.etottracknorm
 
 const int N_PLANES                 = 5;
@@ -166,14 +164,6 @@ void write_to_canvas_plane(HistType *hist_arr[N_PLANES][N_PADDLES], TFile *file,
     hist_plane_sum[plane]->SetLineColor(plane + 1); // Assign different colors for each plane
     hist_plane_sum[plane]->Draw("HIST");
   }
-  c_all_planes->cd(N_PLANES + 1);
-  TH1F *hist_sum_back = (TH1F *)hist_plane_sum[1]->Clone("h_sum_back");
-  hist_sum_back->Add(hist_plane_sum[3]);
-  hist_sum_back->SetLineColor(kBlack);
-  TString title = hist_sum_back->GetTitle();
-  title.ReplaceAll("Plane 001", "Planes 001 + 101");
-  hist_sum_back->SetTitle(title);
-  hist_sum_back->Draw("HIST");
   c_all_planes->Write();
   delete c_all_planes;
 
@@ -400,8 +390,7 @@ void make_matching_hit_histo(int fullhit_n[N_PLANES], Double_t fullhit_paddle[N_
                  i_bar <= bar + hit_cuts[i_hit_cut].n_bar_tolerance; ++i_bar) {
               if (i_bar < 0 || i_bar >= N_PADDLES)
                 continue; // Skip invalid bars
-              if (has_hodo_hit[match_plane][i_bar] &&
-                  fabs(hit_times[match_plane][i_hit] - hit_times[plane][i_hit]) < 50) {
+              if (has_hodo_hit[match_plane][i_bar]) {
                 is_good_hit = true;
                 break;
               }
@@ -416,8 +405,7 @@ void make_matching_hit_histo(int fullhit_n[N_PLANES], Double_t fullhit_paddle[N_
                  i_bar <= bar + hit_cuts[i_hit_cut].n_bar_tolerance; ++i_bar) {
               if (i_bar < 0 || i_bar >= N_PADDLES)
                 continue; // Skip invalid bars
-              if (has_hodo_hit[match_plane][i_bar] &&
-                  fabs(hit_times[match_plane][i_hit] - hit_times[plane][i_hit]) < 50) {
+              if (has_hodo_hit[match_plane][i_bar]) {
                 is_good_hit = false;
                 break;
               }
@@ -433,18 +421,379 @@ void make_matching_hit_histo(int fullhit_n[N_PLANES], Double_t fullhit_paddle[N_
   }
 }
 
-void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileNames,
-                   map<string, TH1 *[nHitCuts][N_PLANES][N_PADDLES]> &hist_map_trk_cuts) {
+int lad_tof_plots_single() {
+  // Set batch mode to suppress graphical output
+  gROOT->SetBatch(kTRUE);
 
-  TChain *T = new TChain("T");
+  // Open multiple ROOT files
+  // std::vector<TString> fileNames = {
+  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22591_0_2_-1.root"};
+
+  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22572_0_6_2000000.root"};
+  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1.root",
+  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1_1.root"};
+  std::vector<TString> fileNames = get_file_names("../files/run-lists/all_C3_runlist_22745-23590.dat");
+  // std::vector<TString> fileNames = get_file_names("../files/run-lists/all_C3_runlist_23700.dat");
+  // std::vector<TString> fileNames = get_file_names("../files/run-lists/all_C3_runlist.dat");
+  // std::vector<TString> fileNames = get_file_names("files/LD2_setting1_new2.dat");
+
+  TString outputFileName = Form("files/root/updated_timing_plots_single_C3_22745-23590_%c.root", spec_prefix);
+  // TString outputFileName =
+  //     Form("files/raw_hodo_timing_plots/raw_hodo_timing_plots_LD2_setting1_new2_%c.root", spec_prefix);
+
+  // Create a TChain to combine the trees from multiple files
+  TChain *chain = new TChain("T");
   for (const auto &fileName : fileNames) {
-    T->Add(fileName);
+    chain->Add(fileName);
   }
 
-  if (T->GetEntries() == 0) {
+  if (chain->GetEntries() == 0) {
     std::cerr << "Error: Cannot open the ROOT files or no entries in the TChain!" << std::endl;
-    return;
+    delete chain;
+    return -1;
   }
+
+  // Get the TTree
+  TTree *T = chain;
+  if (!T) {
+    std::cerr << "Error: Cannot find the TTree named 'T'!" << std::endl;
+    delete chain;
+    return -1;
+  }
+
+  // Number of entries in the TTree
+  int nEntries = T->GetEntries();
+  // nEntries     = 10000;
+
+  // Number of threads to use
+  int numThreads = 1;
+
+  std::vector<map<string, TH1 *[nHitCuts][N_PLANES][N_PADDLES]>> hist_map_vec(numThreads);
+
+  for (int thread = 0; thread < numThreads; ++thread) {
+    for (int plane = 0; plane < N_PLANES; ++plane) {
+      for (int bar = 0; bar < N_PADDLES; ++bar) {
+        for (int i_hit_cut = 0; i_hit_cut < nHitCuts; i_hit_cut++) {
+          hist_map_vec[thread]["h_TDC_top_bar"][i_hit_cut][plane][bar] = new TH1F(
+              Form("h_TDC_top_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                   hit_cuts[i_hit_cut].cut_name.c_str()),
+              Form("TDC Top Plane %s Bar %d %s", plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+              time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_TDC_top_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("TDC Time (ns)");
+          hist_map_vec[thread]["h_TDC_top_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_TDC_btm_bar"][i_hit_cut][plane][bar] = new TH1F(
+              Form("h_TDC_btm_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                   hit_cuts[i_hit_cut].cut_name.c_str()),
+              Form("TDC Btm Plane %s Bar %d %s", plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+              time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_TDC_btm_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("TDC Time (ns)");
+          hist_map_vec[thread]["h_TDC_btm_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ADC_top_bar"][i_hit_cut][plane][bar] = new TH1F(
+              Form("h_ADC_top_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                   hit_cuts[i_hit_cut].cut_name.c_str()),
+              Form("ADC Top Plane %s Bar %d %s", plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+              time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_ADC_top_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ADC Time (ns)");
+          hist_map_vec[thread]["h_ADC_top_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ADC_btm_bar"][i_hit_cut][plane][bar] = new TH1F(
+              Form("h_ADC_btm_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                   hit_cuts[i_hit_cut].cut_name.c_str()),
+              Form("ADC Btm Plane %s Bar %d %s", plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+              time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_ADC_btm_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ADC Time (ns)");
+          hist_map_vec[thread]["h_ADC_btm_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_Time_Avg_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_Time_Avg_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("Time Avg Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_Time_Avg_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("Time Avg (ns)");
+          hist_map_vec[thread]["h_Time_Avg_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar] = new TH1F(
+              Form("h_ToF_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+              Form("ToF Plane %s Bar %d %s", plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+              tof_params.NBINS, tof_params.MIN, tof_params.MAX);
+          hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
+          hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_per_m_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF per m Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // ToF Vertex per m
+          hist_map_vec[thread]["h_ToF_vertex_per_m_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_per_m_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex per m Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_vertex_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // ToF Vertex RFcorr per m
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_per_m_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr per m Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex RFcorr per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_trigger_bar_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Trigger Bar Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF Trigger (ns)");
+          hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // ToF relative to vertex (raw)
+          hist_map_vec[thread]["h_ToF_vertex_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_bar_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF Vertex (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // ToF relative to vertex (RF-corrected)
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_bar_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex RFcorr (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // Versions with edepCut before _bar
+          hist_map_vec[thread]["h_Time_Avg_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_Time_Avg_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("Time Avg edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_Time_Avg_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("Time Avg (ns)");
+          hist_map_vec[thread]["h_Time_Avg_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params.NBINS, tof_params.MIN, tof_params.MAX);
+          hist_map_vec[thread]["h_ToF_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
+          hist_map_vec[thread]["h_ToF_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_trigger_edepCut_bar_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Trigger edepCut Bar Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Trigger (ns)");
+          hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // edepCut versions for ToF Vertex
+          hist_map_vec[thread]["h_ToF_vertex_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex RFcorr (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
+              "Counts");
+
+          // edepCut versions for ToF Vertex per m
+          hist_map_vec[thread]["h_ToF_vertex_per_m_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_per_m_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex per m edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_vertex_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_per_m_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr per m edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex RFcorr per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
+              "Counts");
+
+          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_Time_Avg_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("Time Avg antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       time_params.NBINS, time_params.MIN, time_params.MAX);
+          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "Time Avg (ns)");
+          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params.NBINS, tof_params.MIN, tof_params.MAX);
+          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
+          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_trigger_antiEdepCut_bar_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Trigger antiEdepCut Bar Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Trigger (ns)");
+          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          // antiEdepCut versions for ToF Vertex per m
+          hist_map_vec[thread]["h_ToF_vertex_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_per_m_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex per m antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_vertex_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
+              "Counts");
+
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_per_m_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr per m antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]
+              ->GetXaxis()
+              ->SetTitle("ToF Vertex RFcorr per m (ns/m)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]
+              ->GetYaxis()
+              ->SetTitle("Counts");
+
+          // antiEdepCut versions for ToF Vertex
+          hist_map_vec[thread]["h_ToF_vertex_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex RFcorr (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
+              "Counts");
+
+          // photonCorr versions for ToF Vertex RFcorr
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_plane_%s_bar_%d_%s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr photonCorr Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
+              "ToF Vertex RFcorr photonCorr (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
+              "Counts");
+
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_edepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(),
+                            bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr photonCorr edepCut Plane %s Bar %d %s", plane_names[plane].c_str(), bar,
+                            hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"][i_hit_cut][plane][bar]
+              ->GetXaxis()
+              ->SetTitle("ToF Vertex RFcorr photonCorr (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"][i_hit_cut][plane][bar]
+              ->GetYaxis()
+              ->SetTitle("Counts");
+
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"][i_hit_cut][plane][bar] =
+              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_plane_%s_bar_%d_%s", plane_names[plane].c_str(),
+                            bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+                       Form("ToF Vertex RFcorr photonCorr antiEdepCut Plane %s Bar %d %s", plane_names[plane].c_str(),
+                            bar, hit_cuts[i_hit_cut].cut_name.c_str()),
+                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"][i_hit_cut][plane][bar]
+              ->GetXaxis()
+              ->SetTitle("ToF Vertex RFcorr photonCorr (ns)");
+          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"][i_hit_cut][plane][bar]
+              ->GetYaxis()
+              ->SetTitle("Counts");
+        }
+      }
+    }
+  }
+
+  // Create an output ROOT file
+  TFile *outputFile = new TFile(outputFileName, "RECREATE");
+  if (!outputFile || outputFile->IsZombie()) {
+    std::cerr << "Error: Cannot create the output ROOT file!" << std::endl;
+    return -1;
+  }
+
+  // Helper lambda to format numbers with commas
+  auto format_with_commas = [](int64_t value) {
+    std::string num    = std::to_string(value);
+    int insertPosition = num.length() - 3;
+    while (insertPosition > 0) {
+      num.insert(insertPosition, ",");
+      insertPosition -= 3;
+    }
+    return num;
+  };
+
+  // Process all events in one thread
+  cout << "Starting single-threaded processing for " << format_with_commas(nEntries) << " events." << endl;
 
   // Hodo-level data
   Double_t tdc_time[N_SIDES][N_PLANES][MAX_DATA];
@@ -465,10 +814,7 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
 
   Int_t nData_adc[N_SIDES][N_PLANES];
   Int_t nData_tdc[N_SIDES][N_PLANES];
-  Double_t hodo_start_time, pTRIG1, pTRIG2, pTRIG3, pTRIG4, evtyp, vertex_time, vertex_time_RFcorr, etottracknorm,
-      react_z;
-
-  react_z = 0; // Just in case, since it's only used for a cut and not plotted
+  Double_t hodo_start_time, pTRIG1, pTRIG2, pTRIG3, pTRIG4, evtyp, vertex_time, vertex_time_RFcorr, etottracknorm;
 
   T->SetCacheSize(CACHE_SIZE);
   T->SetBranchStatus("*", 0); // Disable all branches initially
@@ -481,8 +827,9 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
   add_branch(T, "g.evtyp", &evtyp);
   add_branch(T, Form("%c.ladkin.t_vertex", spec_prefix), &vertex_time);
   add_branch(T, Form("%c.ladkin.t_vertex_RFcorr", spec_prefix), &vertex_time_RFcorr);
+  // Normalized total track energy for electron selection
   add_branch(T, Form("%c.cal.etottracknorm", spec_prefix), &etottracknorm);
-  add_branch(T, Form("%c.react.z", spec_prefix), &react_z);
+
   for (int side = 0; side < N_SIDES; ++side) {
     for (int plane = 0; plane < N_PLANES; ++plane) {
       add_branch(T, Form("%c.ladhod.%s.%sTdcTime", spec_prefix, plane_names[plane].c_str(), side_names[side].c_str()),
@@ -533,7 +880,7 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
   for (int plane = 0; plane < N_PLANES; ++plane) {
     add_branch(T, Form("%c.ladhod.%s.HodoHitTime", spec_prefix, plane_names[plane].c_str()), &fullhit_time_avg[plane]);
     add_branch(T, Form("%c.ladhod.%s.HodoHitTOF", spec_prefix, plane_names[plane].c_str()), &fullhit_tof_avg[plane]);
-    add_branch(T, Form("%c.ladhod.%s.HodoHitEdep_MeV", spec_prefix, plane_names[plane].c_str()),
+    add_branch(T, Form("%c.ladhod.%s.HodoHitEdepAmp", spec_prefix, plane_names[plane].c_str()),
                &fullhit_adc_avg[plane]);
     add_branch(T, Form("%c.ladhod.%s.HodoHitPaddleNum", spec_prefix, plane_names[plane].c_str()),
                &fullhit_paddle[plane]);
@@ -547,6 +894,8 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
   ////////////////////////////////////////////////////
   // Start Event Loop
 
+  int start = 0;
+  int end   = nEntries;
   if (end < 1) {
     end = T->GetEntries(); // If end is less than 1, set it to the total number of entries
   }
@@ -612,18 +961,16 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
     Double_t fullhit_tof_trigger_avg[N_PLANES][MAX_DATA] = {-999};
     Double_t fullhit_tof_avg_per_m[N_PLANES][MAX_DATA]   = {-999};
     // New: ToF relative to vertex time (raw and RF-corrected) and per-meter versions
-    Double_t fullhit_tof_vertex_avg[N_PLANES][MAX_DATA]                          = {-999};
-    Double_t fullhit_tof_vertex_RFcorr_avg[N_PLANES][MAX_DATA]                   = {-999};
-    Double_t fullhit_tof_vertex_per_m[N_PLANES][MAX_DATA]                        = {-999};
-    Double_t fullhit_tof_vertex_RFcorr_per_m[N_PLANES][MAX_DATA]                 = {-999};
-    Double_t fullhit_tof_vertex_RFcorr_photonCorr[N_PLANES][MAX_DATA]            = {-999};
-    Double_t fullhit_tof_vertex_RFcorr_photonCorr_vertexCorr[N_PLANES][MAX_DATA] = {-999};
-    Double_t fullhit_tof_vertex_RFcorr_vertexCorr[N_PLANES][MAX_DATA]            = {-999};
+    Double_t fullhit_tof_vertex_avg[N_PLANES][MAX_DATA]               = {-999};
+    Double_t fullhit_tof_vertex_RFcorr_avg[N_PLANES][MAX_DATA]        = {-999};
+    Double_t fullhit_tof_vertex_per_m[N_PLANES][MAX_DATA]             = {-999};
+    Double_t fullhit_tof_vertex_RFcorr_per_m[N_PLANES][MAX_DATA]      = {-999};
+    Double_t fullhit_tof_vertex_RFcorr_photonCorr[N_PLANES][MAX_DATA] = {-999};
     for (int plane = 0; plane < N_PLANES; ++plane) {
       for (int i_hit = 0; i_hit < fullhit_n[plane]; ++i_hit) {
         double path_length =
             sqrt(pow(fullhit_y_pos[plane][i_hit], 2) + pow(22 * (fullhit_paddle[plane][i_hit] - 6), 2));
-        path_length = sqrt(path_length * path_length + hodo_radii[plane] * hodo_radii[plane]) / 100; // in m
+        path_length = sqrt(path_length * path_length + hodo_radii[plane] * hodo_radii[plane]) / 100;
         fullhit_tof_trigger_avg[plane][i_hit] =
             (fullhit_time_avg[plane][i_hit] - hodo_start_time + 60 - 1750 + 19 - 2 * 6) / path_length;
         // ToF relative to vertex (simple subtraction as requested)
@@ -638,19 +985,12 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
           fullhit_tof_avg_per_m[plane][i_hit]           = (fullhit_tof_avg[plane][i_hit] - 40) / path_length;
           // Photon correction: subtract (path_length - hodo_radii[plane])/3 from RFcorr time
           fullhit_tof_vertex_RFcorr_photonCorr[plane][i_hit] =
-              fullhit_tof_vertex_RFcorr_avg[plane][i_hit] - path_length / 0.3;
-          double react_z_corr = react_z / 30.0;
-          fullhit_tof_vertex_RFcorr_photonCorr_vertexCorr[plane][i_hit] =
-              fullhit_tof_vertex_RFcorr_photonCorr[plane][i_hit] - react_z_corr;
-          fullhit_tof_vertex_RFcorr_vertexCorr[plane][i_hit] =
-              fullhit_tof_vertex_RFcorr_avg[plane][i_hit] - react_z_corr;
+              fullhit_tof_vertex_RFcorr_avg[plane][i_hit] - (path_length / 100.0) / 0.3;
         } else {
-          fullhit_tof_vertex_per_m[plane][i_hit]                        = -999;
-          fullhit_tof_vertex_RFcorr_per_m[plane][i_hit]                 = -999;
-          fullhit_tof_avg_per_m[plane][i_hit]                           = -999;
-          fullhit_tof_vertex_RFcorr_photonCorr[plane][i_hit]            = -999;
-          fullhit_tof_vertex_RFcorr_photonCorr_vertexCorr[plane][i_hit] = -999;
-          fullhit_tof_vertex_RFcorr_vertexCorr[plane][i_hit]            = -999;
+          fullhit_tof_vertex_per_m[plane][i_hit]             = -999;
+          fullhit_tof_vertex_RFcorr_per_m[plane][i_hit]      = -999;
+          fullhit_tof_avg_per_m[plane][i_hit]                = -999;
+          fullhit_tof_vertex_RFcorr_photonCorr[plane][i_hit] = -999;
         }
       }
     }
@@ -707,571 +1047,93 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
     }
 
     // Fill the histograms
-    make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg,
-                            hist_map_trk_cuts["h_ToF_bar"], -200, 500);
+    make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg, hist_map_vec[0]["h_ToF_bar"],
+                            -200, 500);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg_edepCut,
-                            hist_map_trk_cuts["h_ToF_edepCut_bar"], -200, 500);
+                            hist_map_vec[0]["h_ToF_edepCut_bar"], -200, 500);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg_antiEdepCut,
-                            hist_map_trk_cuts["h_ToF_antiEdepCut_bar"], -200, 500);
+                            hist_map_vec[0]["h_ToF_antiEdepCut_bar"], -200, 500);
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_avg_per_m,
-                            hist_map_trk_cuts["h_ToF_per_m_bar"], -10, 50);
+                            hist_map_vec[0]["h_ToF_per_m_bar"], -10, 50);
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_trigger_avg,
-                            hist_map_trk_cuts["h_ToF_trigger_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_trigger_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_trigger_avg_edepCut,
-                            hist_map_trk_cuts["h_ToF_trigger_edepCut_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_trigger_edepCut_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg,
-                            fullhit_tof_trigger_avg_antiEdepCut, hist_map_trk_cuts["h_ToF_trigger_antiEdepCut_bar"],
-                            -100, 100);
+                            fullhit_tof_trigger_avg_antiEdepCut, hist_map_vec[0]["h_ToF_trigger_antiEdepCut_bar"], -100,
+                            100);
     // New: ToF relative to vertex and RF-corrected vertex
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_avg,
-                            hist_map_trk_cuts["h_ToF_vertex_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_avg_edepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_edepCut_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_edepCut_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_avg_antiEdepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_antiEdepCut_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_antiEdepCut_bar"], -100, 100);
 
     // ToF vertex per-meter versions
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_per_m,
-                            hist_map_trk_cuts["h_ToF_vertex_per_m_bar"], -10, 10);
+                            hist_map_vec[0]["h_ToF_vertex_per_m_bar"], -10, 10);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_per_m_edepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_per_m_edepCut_bar"], -10, 10);
+                            hist_map_vec[0]["h_ToF_vertex_per_m_edepCut_bar"], -10, 10);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg,
-                            fullhit_tof_vertex_per_m_antiEdepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_per_m_antiEdepCut_bar"], -10, 10);
+                            fullhit_tof_vertex_per_m_antiEdepCut, hist_map_vec[0]["h_ToF_vertex_per_m_antiEdepCut_bar"],
+                            -10, 10);
 
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_RFcorr_avg,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_RFcorr_avg_edepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_edepCut_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_edepCut_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg,
                             fullhit_tof_vertex_RFcorr_avg_antiEdepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_antiEdepCut_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_antiEdepCut_bar"], -100, 100);
     // ToF vertex RFcorr per-meter versions
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_RFcorr_per_m,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_per_m_bar"], -10, 10);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_per_m_bar"], -10, 10);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg,
                             fullhit_tof_vertex_RFcorr_per_m_edepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_per_m_edepCut_bar"], -10, 10);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"], -10, 10);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg,
                             fullhit_tof_vertex_RFcorr_per_m_antiEdepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"], -10, 10);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"], -10, 10);
     // ToF vertex RFcorr photon-corrected versions
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_RFcorr_photonCorr,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_photonCorr_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_photonCorr_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg,
                             fullhit_tof_vertex_RFcorr_photonCorr_edepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg,
                             fullhit_tof_vertex_RFcorr_photonCorr_antiEdepCut,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"], -100, 100);
-    make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg,
-                            fullhit_tof_vertex_RFcorr_photonCorr_vertexCorr,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_photonCorr_vertexCorr_bar"], -100, 100);
-    make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_tof_vertex_RFcorr_vertexCorr,
-                            hist_map_trk_cuts["h_ToF_vertex_RFcorr_vertexCorr_bar"], -100, 100);
+                            hist_map_vec[0]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"], -100, 100);
     make_matching_hit_histo(fullhit_n, fullhit_paddle, has_hodo_hit_avg, fullhit_time_avg,
-                            hist_map_trk_cuts["h_Time_Avg_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_Time_Avg_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(fullhit_n_edepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_time_avg_edepCut,
-                            hist_map_trk_cuts["h_Time_Avg_edepCut_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_Time_Avg_edepCut_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(fullhit_n_antiEdepCut, fullhit_paddle, has_hodo_hit_avg, fullhit_time_avg_antiEdepCut,
-                            hist_map_trk_cuts["h_Time_Avg_antiEdepCut_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_Time_Avg_antiEdepCut_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(nData_tdc[0], tdc_counter[0], has_hodo_hit_tdc[0], tdc_time[0],
-                            hist_map_trk_cuts["h_TDC_top_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_TDC_top_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(nData_tdc[1], tdc_counter[1], has_hodo_hit_tdc[1], tdc_time[1],
-                            hist_map_trk_cuts["h_TDC_btm_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_TDC_btm_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(nData_adc[0], adc_counter[0], has_hodo_hit_adc[0], adc_time[0],
-                            hist_map_trk_cuts["h_ADC_top_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_ADC_top_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
     make_matching_hit_histo(nData_adc[1], adc_counter[1], has_hodo_hit_adc[1], adc_time[1],
-                            hist_map_trk_cuts["h_ADC_btm_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
+                            hist_map_vec[0]["h_ADC_btm_bar"], MIN_TDC_TIME, MAX_TDC_TIME);
 
     // Loop over the hits and fill the histograms
     // Print the status as a percentage
-    if (i % ((end - start) / 100) == 0 && i_thread == 0) {
+    if (i % ((end - start) / 100) == 0) {
       std::cout << "\rProcessing: " << int((i - start) * 100.0 / (end - start)) << "% completed." << std::flush;
     }
   } // End Event Loop
 
-  return;
-}
-
-int lad_tof_plots() {
-  // Set batch mode to suppress graphical output
-  gROOT->SetBatch(kTRUE);
-  ROOT::EnableThreadSafety();
-
-  // Open multiple ROOT files
-  // std::vector<TString> fileNames = {
-  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22591_0_2_-1.root"};
-
-  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22572_0_6_2000000.root"};
-  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1.root",
-  // "/volatile/hallc/c-lad/ehingerl/lad_replay/ROOTfiles/LAD_COIN/PRODUCTION/LAD_COIN_22382_0_21_-1_1.root"};
-  std::vector<TString> fileNames = get_file_names("../files/run-lists/all_C3_runlist_22745-23590.dat");
-  // std::vector<TString> fileNames = get_file_names("../files/run-lists/all_C3_runlist_23700.dat");
-  // std::vector<TString> fileNames = get_file_names("../files/run-lists/all_C3_runlist.dat");
-  // std::vector<TString> fileNames = get_file_names("files/LD2_setting1_new2.dat");
-
-  TString outputFileName = Form("files/root/updated_timing_plots_C3_22745-23590_%c.root", spec_prefix);
-  // TString outputFileName =
-  //     Form("files/raw_hodo_timing_plots/raw_hodo_timing_plots_LD2_setting1_new2_%c.root", spec_prefix);
-
-  // Create a TChain to combine the trees from multiple files
-  TChain *chain = new TChain("T");
-  for (const auto &fileName : fileNames) {
-    chain->Add(fileName);
-  }
-
-  if (chain->GetEntries() == 0) {
-    std::cerr << "Error: Cannot open the ROOT files or no entries in the TChain!" << std::endl;
-    delete chain;
-    return -1;
-  }
-
-  // Get the TTree
-  TTree *T = chain;
-  if (!T) {
-    std::cerr << "Error: Cannot find the TTree named 'T'!" << std::endl;
-    delete chain;
-    return -1;
-  }
-
-  // Number of entries in the TTree
-  int nEntries = T->GetEntries();
-  // nEntries     = 10000;
-
-  // Number of threads to use
-  int numThreads = std::thread::hardware_concurrency();
-  numThreads     = fileNames.size();
-  int chunkSize  = nEntries / numThreads;
-
-  // Adjust the number of threads if the chunk size is too small
-  if (chunkSize < MINT_EVTS_PER_THREAD) {
-    numThreads = std::max(1, nEntries / MINT_EVTS_PER_THREAD);
-    chunkSize  = nEntries / numThreads;
-  }
-
-  std::vector<map<string, TH1 *[nHitCuts][N_PLANES][N_PADDLES]>> hist_map_vec(numThreads);
-
-  for (int thread = 0; thread < numThreads; ++thread) {
-    for (int plane = 0; plane < N_PLANES; ++plane) {
-      for (int bar = 0; bar < N_PADDLES; ++bar) {
-        for (int i_hit_cut = 0; i_hit_cut < nHitCuts; i_hit_cut++) {
-          hist_map_vec[thread]["h_TDC_top_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_TDC_top_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("TDC Top Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_TDC_top_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("TDC Time (ns)");
-          hist_map_vec[thread]["h_TDC_top_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_TDC_btm_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_TDC_btm_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("TDC Btm Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_TDC_btm_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("TDC Time (ns)");
-          hist_map_vec[thread]["h_TDC_btm_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ADC_top_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ADC_top_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ADC Top Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_ADC_top_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ADC Time (ns)");
-          hist_map_vec[thread]["h_ADC_top_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ADC_btm_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ADC_btm_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ADC Btm Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_ADC_btm_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ADC Time (ns)");
-          hist_map_vec[thread]["h_ADC_btm_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_Time_Avg_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_Time_Avg_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("Time Avg Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_Time_Avg_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("Time Avg (ns)");
-          hist_map_vec[thread]["h_Time_Avg_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params.NBINS, tof_params.MIN, tof_params.MAX);
-          hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
-          hist_map_vec[thread]["h_ToF_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_per_m_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF per m Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // ToF Vertex per m
-          hist_map_vec[thread]["h_ToF_vertex_per_m_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_per_m_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex per m Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_vertex_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // ToF Vertex RFcorr per m
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_per_m_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr per m Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_trigger_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Trigger Bar Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF Trigger (ns)");
-          hist_map_vec[thread]["h_ToF_trigger_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // ToF relative to vertex (raw)
-          hist_map_vec[thread]["h_ToF_vertex_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF Vertex (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // ToF relative to vertex (RF-corrected)
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // Versions with edepCut before _bar
-          hist_map_vec[thread]["h_Time_Avg_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_Time_Avg_edepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("Time Avg edepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_Time_Avg_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("Time Avg (ns)");
-          hist_map_vec[thread]["h_Time_Avg_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_edepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF edepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params.NBINS, tof_params.MIN, tof_params.MAX);
-          hist_map_vec[thread]["h_ToF_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
-          hist_map_vec[thread]["h_ToF_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_trigger_edepCut_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Trigger edepCut Bar Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Trigger (ns)");
-          hist_map_vec[thread]["h_ToF_trigger_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // edepCut versions for ToF Vertex
-          hist_map_vec[thread]["h_ToF_vertex_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_edepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex edepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_edepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr edepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
-              "Counts");
-
-          // edepCut versions for ToF Vertex per m
-          hist_map_vec[thread]["h_ToF_vertex_per_m_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_per_m_edepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex per m edepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_vertex_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_per_m_edepCut_plane_%s_bar_%d_%s_thread_%d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr per m edepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_edepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
-              "Counts");
-
-          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_Time_Avg_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("Time Avg antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       time_params.NBINS, time_params.MIN, time_params.MAX);
-          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "Time Avg (ns)");
-          hist_map_vec[thread]["h_Time_Avg_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params.NBINS, tof_params.MIN, tof_params.MAX);
-          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle("ToF (ns)");
-          hist_map_vec[thread]["h_ToF_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_trigger_antiEdepCut_bar_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Trigger antiEdepCut Bar Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Trigger (ns)");
-          hist_map_vec[thread]["h_ToF_trigger_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          // antiEdepCut versions for ToF Vertex per m
-          hist_map_vec[thread]["h_ToF_vertex_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_per_m_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex per m antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_vertex_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
-              "Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_per_m_antiEdepCut_plane_%s_bar_%d_%s_thread_%d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr per m antiEdepCut Plane %s Bar %d %s Thread %d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_per_m_params.NBINS, tof_per_m_params.MIN, tof_per_m_params.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]
-              ->GetXaxis()
-              ->SetTitle("ToF Vertex RFcorr per m (ns/m)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_per_m_antiEdepCut_bar"][i_hit_cut][plane][bar]
-              ->GetYaxis()
-              ->SetTitle("Counts");
-
-          // antiEdepCut versions for ToF Vertex
-          hist_map_vec[thread]["h_ToF_vertex_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(), bar,
-                            hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_antiEdepCut_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr antiEdepCut Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_antiEdepCut_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
-              "Counts");
-
-          // photonCorr versions for ToF Vertex RFcorr
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr photonCorr Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr photonCorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
-              "Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_edepCut_plane_%s_bar_%d_%s_thread_%d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr photonCorr edepCut Plane %s Bar %d %s Thread %d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"][i_hit_cut][plane][bar]
-              ->GetXaxis()
-              ->SetTitle("ToF Vertex RFcorr photonCorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_edepCut_bar"][i_hit_cut][plane][bar]
-              ->GetYaxis()
-              ->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_plane_%s_bar_%d_%s_thread_%d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr photonCorr antiEdepCut Plane %s Bar %d %s Thread %d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"][i_hit_cut][plane][bar]
-              ->GetXaxis()
-              ->SetTitle("ToF Vertex RFcorr photonCorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_antiEdepCut_bar"][i_hit_cut][plane][bar]
-              ->GetYaxis()
-              ->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_vertexCorr_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_photonCorr_vertexCorr_plane_%s_bar_%d_%s_thread_%d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr photonCorr vertexCorr Plane %s Bar %d %s Thread %d",
-                            plane_names[plane].c_str(), bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_vertexCorr_bar"][i_hit_cut][plane][bar]
-              ->GetXaxis()
-              ->SetTitle("ToF Vertex RFcorr photonCorr vertexCorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_photonCorr_vertexCorr_bar"][i_hit_cut][plane][bar]
-              ->GetYaxis()
-              ->SetTitle("Counts");
-
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_vertexCorr_bar"][i_hit_cut][plane][bar] =
-              new TH1F(Form("h_ToF_vertex_RFcorr_vertexCorr_plane_%s_bar_%d_%s_thread_%d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       Form("ToF Vertex RFcorr vertexCorr Plane %s Bar %d %s Thread %d", plane_names[plane].c_str(),
-                            bar, hit_cuts[i_hit_cut].cut_name.c_str(), thread),
-                       tof_params_full.NBINS, tof_params_full.MIN, tof_params_full.MAX);
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_vertexCorr_bar"][i_hit_cut][plane][bar]->GetXaxis()->SetTitle(
-              "ToF Vertex RFcorr vertexCorr (ns)");
-          hist_map_vec[thread]["h_ToF_vertex_RFcorr_vertexCorr_bar"][i_hit_cut][plane][bar]->GetYaxis()->SetTitle(
-              "Counts");
-        }
-      }
-    }
-  }
-
-  // Create an output ROOT file
-  TFile *outputFile = new TFile(outputFileName, "RECREATE");
-  if (!outputFile || outputFile->IsZombie()) {
-    std::cerr << "Error: Cannot create the output ROOT file!" << std::endl;
-    return -1;
-  }
-
-  if (numThreads < fileNames.size()) {
-    process_by_file = true;
-  }
-
-  // Helper lambda to format numbers with commas
-  auto format_with_commas = [](int64_t value) {
-    std::string num    = std::to_string(value);
-    int insertPosition = num.length() - 3;
-    while (insertPosition > 0) {
-      num.insert(insertPosition, ",");
-      insertPosition -= 3;
-    }
-    return num;
-  };
-
-  // start threads
-  cout << "Starting " << numThreads << " threads for " << format_with_commas(nEntries) << " events." << endl;
-
-  std::vector<std::thread> threads;
-  // Store per-thread file lists to ensure their lifetime matches the threads
-  std::vector<std::vector<TString>> thread_fileNames_vec(numThreads);
-  for (int i_thread = 0; i_thread < numThreads; ++i_thread) {
-    if (process_by_file) {
-      // If processing by file, assign each thread a file to process
-
-      // Assign each thread a subset of fileNames (split as evenly as possible)
-      size_t files_per_thread = fileNames.size() / numThreads;
-      size_t extra            = fileNames.size() % numThreads;
-      size_t start_idx        = i_thread * files_per_thread + std::min<size_t>(i_thread, extra);
-      size_t end_idx          = start_idx + files_per_thread + (i_thread < extra ? 1 : 0);
-      // cout << "Thread " << i_thread << " processing files from index " << start_idx << " to " << end_idx - 1
-      //      << std::endl;
-      thread_fileNames_vec[i_thread] = std::vector<TString>(fileNames.begin() + start_idx, fileNames.begin() + end_idx);
-      // for (size_t idx = start_idx; idx < end_idx; ++idx) {
-      //   std::cout << "Thread " << i_thread << " will process file: " << thread_fileNames_vec[i_thread][idx -
-      //   start_idx]
-      //             << std::endl;
-      // }
-      threads.emplace_back(process_chunk, i_thread, 0, -1, std::ref(thread_fileNames_vec[i_thread]),
-                           std::ref(hist_map_vec[i_thread]));
-    } else {
-      int start = i_thread * chunkSize;
-      int end   = (i_thread == numThreads - 1) ? nEntries : start + chunkSize;
-      threads.emplace_back(process_chunk, i_thread, start, end, ref(fileNames), ref(hist_map_vec[i_thread]));
-    }
-  }
-  // Wait for all threads to finish
-  for (auto &thread : threads) {
-    thread.join();
-  }
-  std::cout << "\rProcessing: 100% completed. \nMerging histograms" << std::endl;
-  // Merge histograms from all threads by adding to the first thread
-  for (int i_thread = 0; i_thread < numThreads; ++i_thread) {
-    for (const auto &hist_pair : hist_map_vec[i_thread]) {
-      for (int i_trk_cut = 0; i_trk_cut < nHitCuts; ++i_trk_cut) {
-        for (int plane = 0; plane < N_PLANES; ++plane) {
-          for (int bar = 0; bar < N_PADDLES; ++bar) {
-            if (i_thread == 0) {
-              (hist_map_vec[0][hist_pair.first][i_trk_cut][plane][bar])
-                  ->SetTitle(TString(hist_map_vec[0][hist_pair.first][i_trk_cut][plane][bar]->GetTitle())
-                                 .ReplaceAll(Form(" Thread %d", i_thread), ""));
-              (hist_map_vec[0][hist_pair.first][i_trk_cut][plane][bar])
-                  ->SetName(TString(hist_map_vec[0][hist_pair.first][i_trk_cut][plane][bar]->GetName())
-                                .ReplaceAll(Form("_thread_%d", i_thread), ""));
-            } else {
-              (hist_map_vec[0][hist_pair.first][i_trk_cut][plane][bar])->Add(hist_pair.second[i_trk_cut][plane][bar]);
-            }
-          }
-        }
-      }
-    }
-  }
+  std::cout << "\rProcessing: 100% completed. \nWriting histograms" << std::endl;
 
   cout << "Writing histograms to file..." << endl;
   // Write histograms to the output file
   outputFile->cd();
 
   // Prepare progress tracking for writing canvases
-  int totalCallsPerCut = 31; // number of write calls per hit-cut. Don't love hardcoding this, but is what it is for now
+  int totalCallsPerCut = 29; // number of write calls per hit-cut. Don't love hardcoding this, but is what it is for now
   int totalCalls       = totalCallsPerCut * nHitCuts;
   int globalWriteCount = 0;
   auto write_and_progress = [&](TH1 *histArr[N_PLANES][N_PADDLES], TFile *file, TString dir, TString var_name,
@@ -1328,14 +1190,6 @@ int lad_tof_plots() {
     write_and_progress(hist_map_vec[0]["h_ToF_vertex_RFcorr_photonCorr_bar"][i_hit_cut], outputFile,
                        Form("KIN/ToF_Vertex_RFcorr_photonCorr/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
                        Form("ToF_Vertex_RFcorr_photonCorr_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
-                       hit_cuts[i_hit_cut].include_comp_plt);
-    write_and_progress(hist_map_vec[0]["h_ToF_vertex_RFcorr_photonCorr_vertexCorr_bar"][i_hit_cut], outputFile,
-                       Form("KIN/ToF_Vertex_RFcorr_photonCorr_vertexCorr/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
-                       Form("ToF_Vertex_RFcorr_photonCorr_vertexCorr_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
-                       hit_cuts[i_hit_cut].include_comp_plt);
-    write_and_progress(hist_map_vec[0]["h_ToF_vertex_RFcorr_vertexCorr_bar"][i_hit_cut], outputFile,
-                       Form("KIN/ToF_Vertex_RFcorr_vertexCorr/%s", hit_cuts[i_hit_cut].cut_name.c_str()),
-                       Form("ToF_Vertex_RFcorr_vertexCorr_%s", hit_cuts[i_hit_cut].cut_name.c_str()),
                        hit_cuts[i_hit_cut].include_comp_plt);
     write_and_progress(hist_map_vec[0]["h_Time_Avg_edepCut_bar"][i_hit_cut], outputFile,
                        Form("KIN/Time_Avg_edepCut/%s", hit_cuts[i_hit_cut].cut_name.c_str()),

@@ -16,19 +16,36 @@ ltrk_dt_cut = 10
 l_nr_rf_offsets = 5; number of rows on vector below
 ;               run_start       SHMS        HMS
 l_rf_offset =   22013,          -0.15,      -3.65,
-                22178,          -0.34,      -3.84,
-                22560,          -0.26,      -1.89,
-                22661,          -0.34,      -3.82,
-                22745,          -0.28,      -1.82
+                22560,          -0.34,      -3.84,
+                22661,          -2.36,      -1.89,
+                22745,          -0.34,      -3.82,
+                23597,          -2.38,      -1.82
 
 l_rf_period = 4.00801
 
-lladkin.z_cell_min = -20.0    ; cm
-lladkin.z_cell_max = +20.0    ; cm
+; --- Tracking-mode toggles ---
+; Which optional tracking passes THcLADKine runs (1 = on, 0 = off).
+ldo_noVertex_tracking = 0  ; no-vertex tracking (free line, no target vertex)
+ldo_xz_tracking       = 0  ; x-z (no-y) tracking: fit only x and z, drop the y residual
+                           ; the no-vertex x-z pass runs only when BOTH toggles are 1
 
-lladkin.theta_min  = 1.0471975512 ; 60.0   degree
-lladkin.theta_max  = 2.96705972839; 170.0  degree
-lladkin.phi_min    = -0.87266462599; -50.0  degree
-lladkin.phi_max    =  0.87266462599; +50.0  degree
+; --- Track fit constraints (set to the code defaults) ---
+; Angles are in RADIANS to match the values used in the track fit.
+lz_cell_min = -15.0        ; cm
+lz_cell_max =  15.0        ; cm
+ltheta_min  =  1.0471976   ; rad ( 60 deg)
+ltheta_max  =  2.9670597   ; rad (170 deg)
+lphi_min    = -0.8726646   ; rad (-50 deg)
+lphi_max    =  0.8726646   ; rad ( 50 deg)
+lchisq_cut  =  20.0, 15.0  ; chi2 cut [0]=accept 2-hodo-hit fit, [1]=fall back to GEM-only
 
-lladkin.chisq_cut  = 20, 15;
+; Space-point resolutions used in the track fit
+lsigma_gem  =  0.1         ; cm
+lsigma_hodo = 10.0         ; cm
+
+; --- Proton ID cuts (set to the code defaults) ---
+lproton_front_edep_cut = 100.0 ; MeV, front-plane proton threshold
+lproton_back_dt_min    =   2.8 ; ns
+lproton_back_dt_max    =  10.0 ; ns
+lproton_back_y_diag    =  35.0 ; MeV
+lproton_back_x_diag    =   5.0 ; ns

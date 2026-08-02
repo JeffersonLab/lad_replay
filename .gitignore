@@ -17,12 +17,14 @@ REPORT_OUTPUT
 HISTOGRAMS
 MON_OUTPUT
 ROOTfiles
+FULL_REPORT_OUTPUT
 .root_history
 raw
 raw.copiedtotape
 cache
 scratch
 junk
+leak_checks
 
 # Symbolic links
 hcana
@@ -35,3 +37,10 @@ SCRIPTS/LAD/LAD_link_defs.h
 DB_LAD_UNUSED/*
 gem_map_LAD.txt
 test.def
+
+# Per-run LAD hodo Vpcalib param files (only keep specific runs)
+PARAM/LAD/HODO/ladhodo_Vpcalib_*.param
+!PARAM/LAD/HODO/ladhodo_Vpcalib_186.param
+!PARAM/LAD/HODO/ladhodo_Vpcalib_229.param
+!PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param
+!PARAM/LAD/HODO/ladhodo_Vpcalib_23798.param
