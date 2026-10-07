@@ -45,6 +45,8 @@
 #include <TROOT.h>
 #include <cmath>
 
+#include "lad_tof_offset.h" // calibrated LAD ToF convention (photon peak at tof-L/c = 0)
+
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 30, 0)
 #if __has_include(<ROOT/RDFHelpers.hxx>)
 #include <ROOT/RDFHelpers.hxx>
@@ -68,13 +70,13 @@
 // =====================================================================
 // Histogram binning
 // =====================================================================
-const int NBINS_TOF=200;      const double XMIN_TOF=0.,      XMAX_TOF=100.;
+const int NBINS_TOF=200;      const double XMIN_TOF=-20.,    XMAX_TOF=80.;   // calibrated ToF: photons at L/c ~ 18-22 ns
 const int NBINS_YPOS=200;     const double XMIN_YPOS=-100.,  XMAX_YPOS=100.;
 const int NBINS_HITTIME=200;  const double XMIN_HITTIME=1550.,XMAX_HITTIME=2050.;
 const int NBINS_EDEP=200;     const double XMIN_EDEP=0.,     XMAX_EDEP=100.;
 const int NBINS_EDEP_AMP=300; const double XMIN_EDEP_AMP=0., XMAX_EDEP_AMP=300;
 const int NBINS_PT=150;       const double XMIN_PT=-5.,      XMAX_PT=10.; // punch throughs
-const int NBINS_TCORR=900;    const double XMIN_TCORR=-150.,  XMAX_TCORR=300.;
+const int NBINS_TCORR=900;    const double XMIN_TCORR=-168.,  XMAX_TCORR=282.; // photon peak at 0 (was [-150,300] with the old -1710 offset)
 
 // N_TRACKS is the max # of tracking variants; N_CATS = 1 (all_hits) + 2*N_TRACKS
 // (has_track/no_track per variant).  Both are compile-time capacities for the
@@ -250,7 +252,7 @@ void lad_tof_fast(const char *dat_file=DEFAULT_DAT_FILE, const char *out_file=DE
       df=df.Alias(sp+"_hittime_" +s, pfx+"hittime_"    +s);
       df=df.Alias(sp+"_edep_"    +s, pfx+"hitedep_"    +s);
       df=df.Alias(sp+"_edep_amp_"+s, pfx+"hitedep_amp_"+s);
-      df=df.Alias(sp+"_tof_"     +s, pfx+"hit_tof_"    +s);
+      df=ladtof::define_tof(df, sp+"_tof_"+s, specs[is], s); // calibrated ToF, any replay
       df=df.Alias(sp+"_ypos_"    +s, pfx+"hit_ypos_"   +s);
     }
     for (const auto& tk:tracks)
@@ -681,7 +683,12 @@ void lad_tof_fast(const char *dat_file=DEFAULT_DAT_FILE, const char *out_file=DE
         const double R=hodo_radii[plane];
         const bool excl_pad=(plane==2||plane==3);
         for (int paddle=0;paddle<N_PADDLES;++paddle) {
-          const double dx=22.*(static_cast<double>(paddle)-6.);
+          // Transverse offset of the paddle CENTRE (cm), 0-BASED paddle index: the 11
+          // paddles are centred at 110, 88, ... -88, -110 (lladhodo_*_center in
+          // lhodo_geom.param), and THcLADHodoscope stores goodhit paddles as
+          // GetPaddleNumber() - 1.  The former 22*(paddle - 6) assumed a 1-based index
+          // and spanned -132 .. +88, i.e. one paddle off and asymmetric.
+          const double dx=(110.-22.*static_cast<double>(paddle));
           const std::string tc=sp+"_tof_p" +std::to_string(plane)+"_b"+std::to_string(paddle)+cs;
           const std::string yc=sp+"_ypos_p"+std::to_string(plane)+"_b"+std::to_string(paddle)+cs;
           df=df.Define(sp+"_tof_corrected_p"+std::to_string(plane)+"_b"+std::to_string(paddle)+cs,
@@ -700,7 +707,7 @@ void lad_tof_fast(const char *dat_file=DEFAULT_DAT_FILE, const char *out_file=DE
               if(plv[i]!=pl_val) continue;
               if(excl_pad&&(pdv[i]==1.||pdv[i]==9.)) continue;
               if(cm2==1&&chi[i]>=100.) continue; if(cm2==2&&chi[i]<100.) continue;
-              double dx=22.*(pdv[i]-6.); double p2d=std::sqrt(yv[i]*yv[i]+dx*dx);
+              double dx=(110.-22.*pdv[i]); double p2d=std::sqrt(yv[i]*yv[i]+dx*dx);
               r.push_back(tv[i]-std::sqrt(p2d*p2d+R*R)/100./0.3);} return r;
           },{sp+"_plane_"+side,sp+"_paddle_"+side,sp+"_ypos_"+side,sp+"_tof_"+side,chi});
       }
@@ -734,7 +741,7 @@ void lad_tof_fast(const char *dat_file=DEFAULT_DAT_FILE, const char *out_file=DE
               int pi=(int)std::round(pl1[i]);
               if(pi!=1&&pi!=3) continue; // only planes 001 and 101
               double R=hodo_radii[pi];
-              double dx=22.*(pd1[i]-6.);
+              double dx=(110.-22.*pd1[i]);
               double p2d=std::sqrt(y1[i]*y1[i]+dx*dx);
               r.push_back(t1[i]-std::sqrt(p2d*p2d+R*R)/100./0.3);
             } return r;
@@ -764,7 +771,7 @@ void lad_tof_fast(const char *dat_file=DEFAULT_DAT_FILE, const char *out_file=DE
                   if((int)std::round(pl1[i])!=pi_c) continue;
                   if(pd1[i]!=pv_c) continue;
                   if(req_track&&chi[i]>=100.) continue;
-                  double dx=22.*(pd1[i]-6.);
+                  double dx=(110.-22.*pd1[i]);
                   double p2d=std::sqrt(y1[i]*y1[i]+dx*dx);
                   r.push_back(t1[i]-std::sqrt(p2d*p2d+R_c*R_c)/100./0.3);
                 } return r;
@@ -786,7 +793,7 @@ void lad_tof_fast(const char *dat_file=DEFAULT_DAT_FILE, const char *out_file=DE
                 if((int)std::round(pl1[i])!=pi_c) continue;
                 if(excl_c&&(pd1[i]==1.||pd1[i]==9.)) continue;
                 if(req_track&&chi[i]>=100.) continue;
-                double dx=22.*(pd1[i]-6.);
+                double dx=(110.-22.*pd1[i]);
                 double p2d=std::sqrt(y1[i]*y1[i]+dx*dx);
                 r.push_back(t1[i]-std::sqrt(p2d*p2d+R_c*R_c)/100./0.3);
               } return r;

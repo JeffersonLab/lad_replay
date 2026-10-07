@@ -5,6 +5,7 @@
 // duplication of memory across threads since root doesn't like mutexes. Multi-threading with ROOT (which is inherently
 // not thread-safe) is hard, and I wasn't smart enough to do it elegantly, but this works.
 #include </usr/lib/gcc/x86_64-redhat-linux/11/include/omp.h>
+#include "lad_tof_offset.h" // calibrated LAD ToF convention (photon peak at tof = L/c)
 #include <TCanvas.h>
 #include <TChain.h>
 #include <TFile.h>
@@ -32,7 +33,7 @@ struct hist_params {
 };
 
 const hist_params time_params      = {70, 1725.0, 1825.0};
-const hist_params tof_params       = {140, 20, 150};
+const hist_params tof_params       = {140, 0, 130}; // calibrated ToF: photons at L/c ~ 18-22 ns
 const hist_params tof_per_m_params = {200, -10, 10};
 const hist_params tof_params_full  = {500, -50, 50};
 
@@ -624,18 +625,21 @@ void process_chunk(int i_thread, int start, int end, std::vector<TString> &fileN
         double path_length =
             sqrt(pow(fullhit_y_pos[plane][i_hit], 2) + pow(22 * (fullhit_paddle[plane][i_hit] - 6), 2));
         path_length = sqrt(path_length * path_length + hodo_radii[plane] * hodo_radii[plane]) / 100; // in m
+        // HodoHitTOF re-referenced to the calibrated offset (hit time - vertex time + offset), any replay
+        if (std::fabs(vertex_time) < ladtof::SENTINEL && std::fabs(fullhit_time_avg[plane][i_hit]) < ladtof::SENTINEL)
+          fullhit_tof_avg[plane][i_hit] = fullhit_time_avg[plane][i_hit] - vertex_time + ladtof::target_offset(spec_prefix);
         fullhit_tof_trigger_avg[plane][i_hit] =
             (fullhit_time_avg[plane][i_hit] - hodo_start_time + 60 - 1750 + 19 - 2 * 6) / path_length;
         // ToF relative to vertex (simple subtraction as requested)
-        fullhit_tof_vertex_avg[plane][i_hit] = (fullhit_time_avg[plane][i_hit] - vertex_time - 10 - 1750 + 19 - 2 * 6);
+        fullhit_tof_vertex_avg[plane][i_hit] = (fullhit_time_avg[plane][i_hit] - vertex_time + ladtof::target_offset(spec_prefix));
         fullhit_tof_vertex_RFcorr_avg[plane][i_hit] =
-            (fullhit_time_avg[plane][i_hit] - vertex_time_RFcorr - 10 - 1750 + 19 - 2 * 6);
-        // (fullhit_time_avg[plane][i_hit] - (2 * vertex_time - vertex_time_RFcorr) - 10 - 1750 + 19 - 2 * 6);
+            (fullhit_time_avg[plane][i_hit] - vertex_time_RFcorr + ladtof::target_offset(spec_prefix));
+        // (fullhit_time_avg[plane][i_hit] - (2 * vertex_time - vertex_time_RFcorr) + ladtof::target_offset(spec_prefix));
         // Per-meter versions (divide by path length)
         if (path_length != 0) {
           fullhit_tof_vertex_per_m[plane][i_hit]        = fullhit_tof_vertex_avg[plane][i_hit] / path_length;
           fullhit_tof_vertex_RFcorr_per_m[plane][i_hit] = fullhit_tof_vertex_RFcorr_avg[plane][i_hit] / path_length;
-          fullhit_tof_avg_per_m[plane][i_hit]           = (fullhit_tof_avg[plane][i_hit] - 40) / path_length;
+          fullhit_tof_avg_per_m[plane][i_hit]           = fullhit_tof_avg[plane][i_hit] / path_length; // photons: 3.34 ns/m
           // Photon correction: subtract (path_length - hodo_radii[plane])/3 from RFcorr time
           fullhit_tof_vertex_RFcorr_photonCorr[plane][i_hit] =
               fullhit_tof_vertex_RFcorr_avg[plane][i_hit] - path_length / 0.3;
