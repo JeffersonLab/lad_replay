@@ -1,0 +1,33 @@
+Block: RawDecode
+#include "DEF-files/LAD_COIN/PRODUCTION/CUTS/coin_rawdecode_cuts.def"
+RawDecode_master ALL_events
+
+Block: Decode
+#include "DEF-files/SHMS/PRODUCTION/CUTS/pstackana_decode_cuts.def"
+#include "DEF-files/HMS/PRODUCTION/CUTS/hstackana_decode_cuts.def"
+#include "DEF-files/LAD_COIN/PRODUCTION/CUTS/lad_coin_trigger_cuts.def"
+Decode_master 1
+
+Block: CoarseTracking
+#include "DEF-files/SHMS/PRODUCTION/CUTS/pstackana_coarsetracking_cuts.def"
+#include "DEF-files/HMS/PRODUCTION/CUTS/hstackana_coarsetracking_cuts.def"
+CoarseTracking_master 1
+
+Block: CoarseReconstruct
+CoarseReconstruct_master 1
+
+Block: Tracking
+Tracking_master 1
+
+Block: Reconstruct
+#include "DEF-files/SHMS/PRODUCTION/CUTS/pstackana_reconstruct_cuts.def"
+#include "DEF-files/HMS/PRODUCTION/CUTS/hstackana_reconstruct_cuts.def"
+Reconstruct_master 1
+
+Block: Physics
+#include "DEF-files/HMS/PRODUCTION/CUTS/hstackana_physics_cuts.def"
+#include "DEF-files/SHMS/PRODUCTION/CUTS/pstackana_physics_cuts.def"
+Physics_master 1
+
+Block: LAD
+LAD_master 1

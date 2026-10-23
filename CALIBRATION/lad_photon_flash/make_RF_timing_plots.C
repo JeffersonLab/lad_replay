@@ -12,12 +12,12 @@
 // lad_tof/lad_tof_fast.C, but using the goodhit_hit_tof_rfcorr_* branches
 // instead of goodhit_hit_tof_*), then:
 //   * PRIMARY: measures the phase of the 4 ns beam-bunch comb from the satellite
-//     peaks in [-50, 10] ns via the first-harmonic (Rayleigh) estimator.  All
+//     peaks in [-70, -10] ns via the first-harmonic (Rayleigh) estimator.  All
 //     comb teeth share the main peak's phase mod 4 ns, so pooling them measures
 //     the phase far more precisely (and more robustly at low stats) than fitting
 //     the main peak.  -> comb phase phi vs run number.
 //   * CROSS-CHECK: also fits a Gaussian to the main peak (tallest bin in
-//     [10, 30] ns, fit over peak +/- 1.5 ns).  Its center, converted to a phase
+//     [-10, 10] ns, fit over peak +/- 1.5 ns).  Its center, converted to a phase
 //     (mod 4 ns), is overlaid on the SAME phase-vs-run canvas as a second set of
 //     points, and its width sigma is plotted vs run on its own canvas.
 //   * writes a per-group summary canvas (planes 000,001,100,101,200 + all-plane
@@ -27,6 +27,12 @@
 // The run number is the first 5-digit token in the file name (e.g.
 // LAD_COIN_22614_1_1_-1.root -> 22614).  Files with no 5-digit run number are
 // skipped.  One point per group.
+//
+// The RF-corrected ToF is re-referenced hit by hit to the calibrated per-
+// spectrometer offsets (../lad_tof/lad_tof_offset.h), so photons sit at
+// tof_rfcorr - L/c = 0 for P and H and any replay gives the same result. The comb
+// phase therefore differs from outputs made with the old shared -1710 ns offset by
+// (offset change) mod 4 ns: about +2.0 ns for P and +1.7 ns for H.
 //
 // Both spectrometers (P and H) are analysed.  Hits are taken with no tracking
 // cut (the tracking-independent "all_hits" category of lad_tof_fast).
@@ -64,6 +70,8 @@
 
 #include <cstdio>
 
+#include "../lad_tof/lad_tof_offset.h" // calibrated LAD ToF convention (photon peak at tof-L/c = 0)
+
 #include <array>
 #include <cmath>
 #include <fstream>
@@ -84,14 +92,14 @@ const char *const plane_names[N_PLANES] = {"000", "001", "100", "101", "200"};
 const char specs[N_SPECS] = {'P', 'H'};
 
 const int    NBINS_TCORR = 900;
-const double XMIN_TCORR = -150., XMAX_TCORR = 300.;
+const double XMIN_TCORR = -168., XMAX_TCORR = 282.; // photon peak at 0 (was [-150,300] with the old -1710 offset)
 const double FIT_HALF_WINDOW = 1.5;   // Gaussian fit range = peak +/- this (ns)
 const double MIN_ENTRIES_FOR_FIT = 50.;
-// The RF-corrected coincidence peak sits at ~20 ns in tof_rfcorr - L/c; search
+// The RF-corrected coincidence peak sits at ~0 ns in tof_rfcorr - L/c (calibrated offsets); search
 // for the maximum only inside this band so the fit cannot latch onto a taller
 // noise bin elsewhere in the (mostly flat) background.
-const double PEAK_SEARCH_MIN = 10.;
-const double PEAK_SEARCH_MAX = 30.;
+const double PEAK_SEARCH_MIN = -10.;
+const double PEAK_SEARCH_MAX = 10.;
 
 // Primary observable: the common phase of the 4 ns beam-bunch comb, measured
 // from the clean satellite (accidental) peaks that sit well away from the main
@@ -99,8 +107,8 @@ const double PEAK_SEARCH_MAX = 30.;
 // them gives the phase far more precisely than fitting the main peak alone.
 // RF_PERIOD matches BG_PERIOD_NS used by lad_tof_fast's bgsub_tof.
 const double RF_PERIOD    = 4.0;      // ns
-const double PHASE_WIN_MIN =  -50.;   // satellite-peak window (exactly 15 periods,
-const double PHASE_WIN_MAX =   10.;   // just below the main peak so the two techniques compare)
+const double PHASE_WIN_MIN =  -70.;   // satellite-peak window (exactly 15 periods,
+const double PHASE_WIN_MAX =  -10.;   // just below the main peak so the two techniques compare)
 
 const char *DEFAULT_DAT_FILE =
   "../files/run-lists/all_C3_runlist_22745-23590.dat";
@@ -221,6 +229,8 @@ static bool analyze_run(const std::vector<std::string> &paths, TDirectory *perru
     const std::string sp(1, specs[is]);
     const std::string pfx = sp + ".ladhod.goodhit_";
     std::vector<std::string> plane_cols;
+    df = ladtof::define_tof(df, sp + "_tofrf_0", specs[is], "0", true); // calibrated RF-corrected ToF, any replay
+    df = ladtof::define_tof(df, sp + "_tofrf_1", specs[is], "1", true);
     for (int pl = 0; pl < N_PLANES; ++pl) {
       const std::string side = (pl % 2 == 0) ? "0" : "1";
       const double R = hodo_radii[pl];
@@ -233,14 +243,19 @@ static bool analyze_run(const std::vector<std::string> &paths, TDirectory *perru
           for (size_t i = 0; i < pln.size(); ++i) {
             if (pln[i] != plv) continue;
             if (excl && (pdl[i] == 1. || pdl[i] == 9.)) continue;
-            const double dx  = 22. * (pdl[i] - 6.);
+            // Transverse offset of the paddle CENTRE (cm), 0-BASED paddle index: the 11
+            // paddles are centred at 110, 88, ... -88, -110 (lladhodo_*_center in
+            // lhodo_geom.param), and THcLADHodoscope stores goodhit paddles as
+            // GetPaddleNumber() - 1.  The former 22*(paddle - 6) assumed a 1-based index
+            // and spanned -132 .. +88, i.e. one paddle off and asymmetric.
+            const double dx  = (110. - 22. * pdl[i]);
             const double p2d = std::sqrt(yp[i] * yp[i] + dx * dx);
             r.push_back(tf[i] - std::sqrt(p2d * p2d + R * R) / 100. / 0.3);
           }
           return r;
         },
         {pfx + "plane_" + side, pfx + "paddle_" + side,
-         pfx + "hit_ypos_" + side, pfx + "hit_tof_rfcorr_" + side});
+         pfx + "hit_ypos_" + side, sp + "_tofrf_" + side});
       plane_cols.push_back(col);
     }
     df = df.Define(sp + "_tofcorr_total",

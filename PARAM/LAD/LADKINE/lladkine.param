@@ -6,20 +6,50 @@ lfixed_z_pos = -10.0 , 0.0 , 10.0 ;
 ld0_cut_wVertex = 200 ; cm
 ld0_cut_noVertex = 200 ; cm
 
-lmax_dTrk_horiz_hitMatch = 100 ; cm
-lmax_dTrk_vert_hitMatch = 100 ; cm
+; LAD ToF offset (ns): tof = hit time - spectrometer vertex time + offset.
+; Per spectrometer, because the SHMS and HMS vertex times differ. Set from the
+; photon peak (back planes + front veto, all 10sigma production runs; replayed with
+; -1710) so that photons arrive at tof = L/c, i.e. tof - L/c = 0:
+;   SHMS peak was at tof-L/c = 18.02 ns, HMS at 42.34 ns (H-P = 24.3 ns, stable over
+;   run periods). Runs 22560-22660 sit ~1 ns later in both (-1728.9 / -1753.1).
+; See CALIBRATION/lad_tof/lad_photon_timing.C and lad_photon_timing_fit.py.
+; 2026-10-09: with the 2026 LAD recalibration (time walk lhodo_TWcalib_2026, per-period ladhodo_Vpcalib_2026_*)
+; the photon peak moves by -0.26 ns in both arms. Reset to the median per-bar photon peak of the RF-corrected
+; ToF in runs 22698+ (CALIBRATION/lad_hodo_calib/lad_bar_timing_peaks.py on btc_P5_v2(_H).root); was -1728.0 / -1752.3.
+; Replays made with the old LAD calibration (ladhodo_Vpcalib_23798, lhodo_TWcalib_186) put photons ~0.26 ns late.
+; 2026-10-09 (later): SHMS/HMS match on the RF-corrected photon peak (tof_rfcorr - path/c, both planes) of 31
+; first-segment test replays with the full 2026 settings: SHMS +0.12/+0.12/+0.20 ns in 22536-22694 / 22698-23425 /
+; 23426+ (all +0.15 +- 0.03), HMS -0.02/-0.02/-0.10 (all -0.03 +- 0.03, kept). SHMS moved by -0.15 ns (was -1727.86).
+; lglobal_time_offset is the fallback when a per-spectrometer value is absent.
+lglobal_time_offset_shms = -1728.01 ;ns
+lglobal_time_offset_hms  = -1751.93 ;ns
+lglobal_time_offset      = -1710   ;ns old shared value (fallback only)
 
-lglobal_time_offset = -1710 ;ns This isn't being used yet
+; Vertex z used by the LAD ToF corrections (electron path length and the z/c of the
+; RF-corrected ToF). A reaction point outside |z| < lvertex_zmax is a junk
+; reconstruction (some at |z| of metres): with lvertex_bad_z_reject = 1 the LAD ToF of
+; that event is not computed (kBig); with 0 the target centre (z = 0) is used instead.
+; Rejecting gives the narrower photon peak (SHMS: ~9% of LAD hits, 7% of photons lost).
+; lvertex_zmax <= 0 disables the limit. The z used is written as X.ladkin.z_tof.
+lvertex_zmax        = 20.0 ;cm
+lvertex_bad_z_reject = 1
 
 ltrk_dt_cut = 10
 
-l_nr_rf_offsets = 5; number of rows on vector below
+; RF phase per run range (CALIBRATION/lad_tof/files/rf_check/l_rf_offset_proposed.param, from the 2026-10-05 ifarm seg0
+; replay of all beam runs): 3-pass row (22013-22177), 22712 row (H back to 3.79 from 22720), H split in 23597+ (slow drift).
+l_nr_rf_offsets = 10; number of rows on vector below
 ;               run_start       SHMS        HMS
-l_rf_offset =   22013,          -0.15,      -3.65,
+l_rf_offset =   22013,          -0.37,      -3.90,
+                22178,          -0.15,      -3.65,
                 22560,          -0.34,      -3.84,
                 22661,          -2.36,      -1.89,
+                22712,          -0.34,      -3.79,
                 22745,          -0.34,      -3.82,
-                23597,          -2.38,      -1.82
+                23597,          -2.38,      -1.89,
+                23641,          -2.38,      -1.82,
+                23701,          -2.38,      -1.75,
+                23759,          -2.38,      -1.78
 
 l_rf_period = 4.00801
 
@@ -44,7 +74,10 @@ lsigma_gem  =  0.1         ; cm
 lsigma_hodo = 10.0         ; cm
 
 ; --- Proton ID cuts (set to the code defaults) ---
-lproton_front_edep_cut = 100.0 ; MeV, front-plane proton threshold
+; Front cut on the 2026 (proton-scale) energy calibration, where the MIP sits at ~14 MeV in every plane and a
+; 5 cm bar holds at most ~80 MeV (punch-through). 25 MeV keeps ~70-80% of slow (1/beta 1.3-4) front hits and
+; ~25% of fast (1/beta ~1) ones. The old 100 MeV was set on the pre-2026 scale and keeps ~5% of protons now.
+lproton_front_edep_cut = 25.0 ; MeV, front-plane proton threshold (was 100 before the 2026 edep calibration)
 lproton_back_dt_min    =   2.8 ; ns
 lproton_back_dt_max    =  10.0 ; ns
 lproton_back_y_diag    =  35.0 ; MeV

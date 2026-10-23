@@ -1,0 +1,104 @@
+# coin_production_lad.def without any GEM branches (for replay_production_lad_spec_noGEM.C).
+# Writes all LAD hodoscope variables (P./H.ladhod.*) and the LAD kinematics (P./H.ladkin.*).
+# block T.coin.hTRIG*
+# block T.coin.pTRIG*
+block T.*
+block g.*
+block H.ladhod.*
+block P.ladhod.*
+block H.ladkin.*
+block P.ladkin.*
+
+block P.hod.*time
+block P.hod.*Time
+block P.gtr.*
+block P.kin.*
+block P.cal.e*
+block P.hgcer.npe*
+block P.react.*
+
+block H.hod.*time
+block H.hod.*Time
+block H.gtr.*
+block H.kin.*
+block H.cal.e*
+block H.cer.npe*
+block H.react.*
+
+# block H.cer.npe*
+# block H.cal.e*
+# block H.hod.*time
+# block H.hod.*Time
+# block H.gtr.*
+# block H.kin.*
+# block H.*
+# 
+# block P.hgcer.npe*
+# block P.cal.e*
+# block P.hod.*time
+# block P.hod.*Time
+# block P.gtr.*
+# block P.kin.*
+# block P.*
+# 
+# block P.ladhod.*
+# block H.ladhod.*
+# 
+# 
+# 
+
+
+
+# begin epics
+# IBC3H00CRCUR4
+# hac_bcm_average
+# ibcm1
+# ibcm2
+# iunser
+# itov3out
+# itov4out
+# IPM3H07A.XRAW
+# IPM3H07A.YRAW
+# IPM3H07B.XRAW
+# IPM3H07B.YRAW
+# IPM3H07C.XRAW
+# IPM3H07C.YRAW
+# end epics
+
+
+##include "DEF-files/LAD_COIN/PRODUCTION/HODO/ladhod_histos.def"
+###include "DEF-files/LAD_COIN/PRODUCTION/HODO/ladhod_histos_expert_timing.def"
+##include "DEF-files/LAD_COIN/PRODUCTION/GEM/gem_histos.def"
+##include "DEF-files/LAD_COIN/PRODUCTION/TRIG/lad_trig_histos.def"
+#
+##include "DEF-files/HMS/PRODUCTION/TRIG/htrig_histos.def"
+##include "DEF-files/HMS/PRODUCTION/CAL/hcal_histos.def"
+##include "DEF-files/HMS/PRODUCTION/CER/hcer_histos.def"
+##include "DEF-files/HMS/PRODUCTION/DC/hdc_histos.def"
+##include "DEF-files/HMS/PRODUCTION/HODO/hhodo_histos.def"
+#
+##include "DEF-files/HMS/PRODUCTION/KIN/hkin_histos.def"
+##include "DEF-files/HMS/PRODUCTION/GTR/hgtr_histos.def"
+##include "DEF-files/HMS/PRODUCTION/RASTER/hraster_histos.def"
+##include "DEF-files/HMS/PRODUCTION/REACT/hreact_histos.def"
+##include "DEF-files/HMS/PRODUCTION/PID/hpid_histos.def"
+##include "DEF-files/HMS/PRODUCTION/EXTCOR/hextcor_histos.def"
+#
+#include "DEF-files/HMS/PRODUCTION/EPICS/hepics_vars.def"
+#
+##include "DEF-files/SHMS/PRODUCTION/TRIG/ptrig_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/AERO/paero_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/CAL/pcal_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/DC/pdc_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/HGCER/phgcer_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/HODO/phodo_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/NGCER/pngcer_histos.def"
+#
+##include "DEF-files/SHMS/PRODUCTION/KIN/pkin_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/GTR/pgtr_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/RASTER/praster_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/REACT/preact_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/PID/ppid_histos.def"
+##include "DEF-files/SHMS/PRODUCTION/EXTCOR/pextcor_histos.def"
+
+#include "DEF-files/SHMS/PRODUCTION/EPICS/pepics_vars.def"

@@ -1,0 +1,2 @@
+; Override for replay_production_lad_spec_noGEM.C sample-waveform comparison
+lladhodo_UseSampWaveform=0

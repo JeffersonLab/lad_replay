@@ -5,6 +5,7 @@ RawDecode_master ALL_events
 Block: Decode
 #include "DEF-files/SHMS/PRODUCTION/CUTS/pstackana_decode_cuts.def"
 #include "DEF-files/HMS/PRODUCTION/CUTS/hstackana_decode_cuts.def"
+#include "DEF-files/LAD_COIN/PRODUCTION/CUTS/lad_coin_trigger_cuts.def"
 Decode_master 1
 
 Block: CoarseTracking

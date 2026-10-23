@@ -150,6 +150,11 @@ void replay_production_lad_gem(int RunNumber = 0, int MaxEvent = 0, int run_type
 
   // LAD hodo ADC-TDC offsets for this run period; selected by run number in standard.database
   gHcParms->Load(gHcParms->GetString("g_ctp_lad_hodo_offset_filename"));
+  // LAD hodo bar timing (velFit, cableFit, LCoeff) and energy calibration for this PMT-HV period; selected by run
+  // number in standard.database (the defaults in general.param apply if a file is not set)
+  for (const char *key : {"g_ctp_lad_hodo_vp_filename", "g_ctp_lad_hodo_edep_filename"})
+    if (const char *fn = gHcParms->GetString(key)) // database strings are text variables, not THaVars
+      gHcParms->Load(fn);
   // Load the Hall C detector map
   // Load map depending on whether run is before or after SHMS DC swap
   gHcDetectorMap = new THcDetectorMap();
@@ -313,6 +318,17 @@ void replay_production_lad_gem(int RunNumber = 0, int MaxEvent = 0, int run_type
   // Add event handler for prestart event 125.
   THcConfigEvtHandler *ev125 = new THcConfigEvtHandler("HC", "Config Event type 125");
   gHaEvtHandlers->Add(ev125);
+  // The report template reads the TI prescale factors as gHC_ti_ps_factors[0..5].
+  // THcConfigEvtHandler only defines that parameter once it has seen a type-125
+  // event carrying a TI configuration block, which does not happen for every run
+  // (e.g. crates without a TI master, or replays that never reach the config
+  // event).  Seed it here so PrintReport always has something to evaluate; the
+  // handler does a RemoveName()/Define() and overwrites these values as soon as
+  // the real configuration arrives.  -1 is hcana's own "no valid prescale"
+  // sentinel, so a run with missing config data stays visibly flagged in the
+  // report instead of silently reporting a prescale of 1.
+  auto *ps_factors_default = new Int_t[6]{-1, -1, -1, -1, -1, -1};
+  gHcParms->Define("gHC_ti_ps_factors[6]", "TI Event Prescale Factor (default)", *ps_factors_default);
   // Add event handler for EPICS events
   THaEpicsEvtHandler *hcepics = new THaEpicsEvtHandler("epics", "HC EPICS event type 181");
   gHaEvtHandlers->Add(hcepics);

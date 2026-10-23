@@ -92,8 +92,10 @@ cminch=2.54
 ;#include "PARAM/LAD/HODO/ladhodo_Vpcalib.param"
 ;#include "PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param"
 #include "PARAM/LAD/HODO/ladhodo_Vpcalib_23798.param"
-
-#include "PARAM/LAD/HODO/lhodo_TWcalib_186.param"
+; 2026 recalibration: time walk with a free amplitude scale c3 (one set for all runs). The bar timing
+; (ladhodo_Vpcalib_2026_*) and energy (ladhodo_edep_2026_*) files are selected per PMT-HV period in standard.database.
+;#include "PARAM/LAD/HODO/lhodo_TWcalib_186.param"
+#include "PARAM/LAD/HODO/lhodo_TWcalib_2026.param"
 
 ; LAD GEM Parameter files
 #include "PARAM/LAD/GEM/lgem_geom.param"
