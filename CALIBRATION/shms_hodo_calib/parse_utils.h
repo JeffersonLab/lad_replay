@@ -1,6 +1,10 @@
 #ifndef PARSE_UTILS_H
 #define PARSE_UTILS_H
 
+#include <sstream>
+#include <string>
+#include <vector>
+
 /*
   Author: C. Yero
   Date: Jan 22, 2022 
