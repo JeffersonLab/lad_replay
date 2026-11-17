@@ -18,6 +18,8 @@
 ; LAD GEM Parameter files
 #include "PARAM/LAD/GEM/lgem_geom.param"
 #include "PARAM/LAD/GEM/lgem_cuts.param"
+; per-APV gain-match constants (lgem_mN_ugain/vgain = 1/C); read only once LADlib loads them
+#include "PARAM/LAD/GEM/lgem_cal_gain.param"
 
 ;Be aware of the files below. They are not called here, but have to be included in lgem_geom.param
 ;#include "PARAM/LAD/GEM/CommonModeRange_1683.txt"
