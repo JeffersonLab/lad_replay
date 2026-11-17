@@ -1,0 +1,113 @@
+; ============================================================================
+; LAD GEM per-APV-card gain-match constants (both modules, all U and V cards)
+; ----------------------------------------------------------------------------
+; Source : APV gain calibration with LAD proton hits (C3 target, SHMS 13.5 deg),
+;          U/V charge asymmetry method as in SBS-replay GEM_GainMatch.C, robust per-hit fit.
+;          Report: apv_calibration_report.pdf (lad_replay_apvs_calibration)
+; Model  : ADC_measured = C * ADC_true for every strip read by the card.
+;          C is relative to U card pos 4 of the same module (C = 1).
+; Stored : lgem_mN_ugain / lgem_mN_vgain = 1/C  (THcLADGEMModule MULTIPLIES the strip ADC by
+;          fUgain / fVgain[strip/128], so 1/C brings every card to the scale of U pos 4).
+; Index  : card position 'pos' of MAPS/LAD/DETEC/GEM/lgem_chan.map: 12 U cards (0-11),
+;          24 V cards (0-23) per module.
+; Origin of each value (column 'src' in the tables below):
+;   S3  = main fit on the clean sample (>= 30 hits)                       51 of 72 cards
+;   S2  = same fit on the larger sample S2 (>= 100 hits, error <= 10 %),
+;         rescaled to the S3 scale (x1.011 GEM0, x0.990 GEM1)              5 of 72 cards
+;   avg = no protons reach the card: average C of the calibrated cards of
+;         the same axis and module (not a measurement)                    16 of 72 cards
+;         (GEM1 V pos 17 is a dead card)
+;
+; !!! STATUS: THcLADGEMModule (LADlib, checked 2026-11-17) does NOT yet read lgem_mN_ugain /
+; lgem_mN_vgain: fUgain / fVgain are set to 1 (times lgem_modulegain) for every card. These
+; keys only take effect after LADlib loads them (DBRequest {"_ugain", ...}, {"_vgain", ...}
+; with prefix "lgem_mN" in THcLADGEMModule::ReadDatabase).
+; Note: zero suppression is applied before the gain, but lgem_threshold_sample / _stripsum /
+; _clustersum are applied after it, so the overall normalisation (U pos 4 = 1, V cards scaled
+; by ~0.5) changes which V strips/clusters pass those thresholds. Re-check them when enabling.
+; ============================================================================
+
+;
+; GEM0 (m0) U cards:  pos   C       dC     1/C     src  hits(S3)  hits(S2)
+;                           0  1.0399  0.0236  0.9617  S2        0       766
+;                           1  1.0252  0.0168  0.9754  S3      671      2099
+;                           2  1.0239  0.0174  0.9766  S3      753      3025
+;                           3  1.0516  0.0168  0.9509  S3      893      2922
+;                           4  1.0000  0.0000  1.0000  S3     1020      3233
+;                           5  1.0442  0.0170  0.9576  S3      927      2961
+;                           6  1.0341  0.0175  0.9670  S3      904      3169
+;                           7  0.9916  0.0179  1.0085  S3      832      3074
+;                           8  1.0258  0.0180  0.9749  S3      640      2785
+;                           9  1.0100  0.0174  0.9901  S3      447      2139
+;                          10  1.5972  0.1013  0.6261  S2        0       424
+;                          11  1.6654  0.0205  0.6005  S2       10       974
+lgem_m0_ugain = 0.9617, 0.9754, 0.9766, 0.9509, 1.0000, 0.9576, 0.9670, 1.0085, 0.9749, 0.9901, 0.6261, 0.6005
+;
+; GEM0 (m0) V cards:  pos   C       dC     1/C     src  hits(S3)  hits(S2)
+;                           0  1.9734       -  0.5067  avg       0        10
+;                           1  1.9734       -  0.5067  avg       0        64
+;                           2  1.9545  0.0549  0.5116  S3      128       426
+;                           3  1.9599  0.0316  0.5102  S3      526      1427
+;                           4  1.8395  0.0320  0.5436  S3      560      1732
+;                           5  1.9306  0.0320  0.5180  S3      663      2050
+;                           6  2.0289  0.0384  0.4929  S3      453      1852
+;                           7  2.0424  0.0402  0.4896  S3      515      1847
+;                           8  2.1227  0.0358  0.4711  S3      611      2111
+;                           9  1.9974  0.0335  0.5007  S3      800      2853
+;                          10  1.9158  0.0300  0.5220  S3      731      3048
+;                          11  1.9315  0.0305  0.5177  S3      871      3766
+;                          12  2.0910  0.0405  0.4782  S3      508      2581
+;                          13  2.0193  0.0430  0.4952  S3      340      1813
+;                          14  2.0080  0.0650  0.4980  S3      274      1253
+;                          15  1.9452  0.0772  0.5141  S3      115       583
+;                          16  1.8146  0.1418  0.5511  S2        2       130
+;                          17  1.9734       -  0.5067  avg       0        23
+;                          18  1.9734       -  0.5067  avg       0         2
+;                          19  1.9734       -  0.5067  avg       0         0
+;                          20  1.9734       -  0.5067  avg       0         0
+;                          21  1.9734       -  0.5067  avg       0         0
+;                          22  1.9734       -  0.5067  avg       0         0
+;                          23  1.9734       -  0.5067  avg       0         0
+lgem_m0_vgain = 0.5067, 0.5067, 0.5116, 0.5102, 0.5436, 0.5180, 0.4929, 0.4896, 0.4711, 0.5007, 0.5220, 0.5177, 0.4782, 0.4952, 0.4980, 0.5141, 0.5511, 0.5067, 0.5067, 0.5067, 0.5067, 0.5067, 0.5067, 0.5067
+;
+; GEM1 (m1) U cards:  pos   C       dC     1/C     src  hits(S3)  hits(S2)
+;                           0  0.9403  0.0095  1.0635  S3      563      1631
+;                           1  0.9011  0.0092  1.1098  S3      598      1748
+;                           2  0.9529  0.0098  1.0494  S3      720      2252
+;                           3  0.9123  0.0082  1.0961  S3      739      2067
+;                           4  1.0000  0.0000  1.0000  S3      838      2259
+;                           5  0.9598  0.0097  1.0419  S3      761      2251
+;                           6  0.9746  0.0099  1.0261  S3      766      2301
+;                           7  0.9115  0.0105  1.0971  S3      642      1866
+;                           8  0.8632  0.0116  1.1585  S3      640      1880
+;                           9  0.9030  0.0156  1.1074  S3      452      1362
+;                          10  1.4309  0.0219  0.6989  S3      302       904
+;                          11  1.4308  0.0320  0.6989  S3       76       389
+lgem_m1_ugain = 1.0635, 1.1098, 1.0494, 1.0961, 1.0000, 1.0419, 1.0261, 1.0971, 1.1585, 1.1074, 0.6989, 0.6989
+;
+; GEM1 (m1) V cards:  pos   C       dC     1/C     src  hits(S3)  hits(S2)
+;                           0  1.6006  0.0357  0.6248  S3      148       349
+;                           1  1.7614  0.0235  0.5677  S3      342       777
+;                           2  1.6235  0.0195  0.6160  S3      466      1175
+;                           3  1.7088  0.0191  0.5852  S3      505      1220
+;                           4  1.7815  0.0206  0.5613  S3      538      1427
+;                           5  1.6968  0.0197  0.5894  S3      380      1040
+;                           6  1.7354  0.0220  0.5762  S3      463      1182
+;                           7  1.7879  0.0284  0.5593  S3      289       801
+;                           8  1.6186  0.0153  0.6178  S3      637      1733
+;                           9  1.6746  0.0186  0.5971  S3      575      1716
+;                          10  1.7242  0.0184  0.5800  S3      702      2187
+;                          11  1.8200  0.0196  0.5495  S3      705      2241
+;                          12  1.6986  0.0182  0.5887  S3      585      2021
+;                          13  1.7189  0.0184  0.5818  S3      305      1184
+;                          14  1.7253  0.0231  0.5796  S3      288      1108
+;                          15  1.6432  0.0278  0.6086  S3      161       637
+;                          16  1.5529  0.0715  0.6440  S2        8       105
+;                          17  1.6984       -  0.5888  avg       0         0
+;                          18  1.6984       -  0.5888  avg       0         6
+;                          19  1.6984       -  0.5888  avg       0         1
+;                          20  1.6984       -  0.5888  avg       0         0
+;                          21  1.6984       -  0.5888  avg       0         0
+;                          22  1.6984       -  0.5888  avg       0         0
+;                          23  1.6984       -  0.5888  avg       0         0
+lgem_m1_vgain = 0.6248, 0.5677, 0.6160, 0.5852, 0.5613, 0.5894, 0.5762, 0.5593, 0.6178, 0.5971, 0.5800, 0.5495, 0.5887, 0.5818, 0.5796, 0.6086, 0.6440, 0.5888, 0.5888, 0.5888, 0.5888, 0.5888, 0.5888, 0.5888
