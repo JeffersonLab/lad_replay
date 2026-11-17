@@ -1,0 +1,31 @@
+; General LAD parameter files -- Monte Carlo variant of general.param.
+; Only difference from general.param: includes lhodo_cuts_mc.param instead
+; of lhodo_cuts_no_timing_windows.param, which sets is_mc=1. That single
+; global flag is enough to make THcLADHodoscope/THcLADHodoPlane/
+; THcLADGEMModule switch to MC chanmaps and skip pedestal/common-mode
+; subtraction (see their ReadDatabase()). Keep every other include here in
+; sync with general.param.
+#include "PARAM/GEN/genflags.param"
+#include "PARAM/GEN/gdebug.param"
+; #include "PARAM/GEN/gtarget.param"
+; #include "PARAM/GEN/gbeam.param"
+; #include "PARAM/GEN/gscalers.param"
+
+; LAD default calibration parameter files
+#include "PARAM/LAD/HODO/lhodo_geom.param"
+#include "PARAM/LAD/HODO/lhodo_cuts_mc.param"
+#include "PARAM/LAD/HODO/lhodo_calib.param"
+#include "PARAM/LAD/GEN/l_reftime_cut_laddaq.param"
+#include "PARAM/LAD/HODO/lhodo_TWcalib_186.param"
+;#include "PARAM/LAD/HODO/ladhodo_Vpcalib.param"
+;#include "PARAM/LAD/HODO/ladhodo_Vpcalib_22827.param"
+#include "PARAM/LAD/HODO/ladhodo_Vpcalib_23798.param"
+
+; LAD GEM Parameter files
+#include "PARAM/LAD/GEM/lgem_geom.param"
+#include "PARAM/LAD/GEM/lgem_cuts.param"
+
+;Be aware of the files below. They are not called here, but have to be included in lgem_geom.param
+;#include "PARAM/LAD/GEM/CommonModeRange_1683.txt"
+;#include "PARAM/LAD/GEM/gem_ped_1683.dat"
+

@@ -1,0 +1,31 @@
+# Slim output for RF / LAD timing studies (lad_rf_offset_check.C and friends).
+# Same as coin_production_lad.def without GEM, the per-plane LAD arrays (X.ladhod.<plane>.*)
+# and the trigger TDC/ADC block (T.*): about 5% of the production file size.
+block g.*
+block T.shms.pRF_tdc*
+block T.hms.hRF_tdc*
+block T.hms.hHODO_RF_tdc*
+
+block H.ladhod.goodhit_*
+block P.ladhod.goodhit_*
+block H.ladkin.*
+block P.ladkin.*
+
+block P.hod.*time
+block P.hod.*Time
+block P.gtr.*
+block P.kin.*
+block P.cal.e*
+block P.hgcer.npe*
+block P.react.*
+
+block H.hod.*time
+block H.hod.*Time
+block H.gtr.*
+block H.kin.*
+block H.cal.e*
+block H.cer.npe*
+block H.react.*
+
+#include "DEF-files/HMS/PRODUCTION/EPICS/hepics_vars.def"
+#include "DEF-files/SHMS/PRODUCTION/EPICS/pepics_vars.def"

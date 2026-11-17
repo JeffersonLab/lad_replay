@@ -17,6 +17,48 @@ g_ctp_lad_hodo_offset_filename = "PARAM/LAD/HODO/lhodo_adc_tdc_offsets_preMay16.
 22590-99999
 g_ctp_lad_hodo_offset_filename = "PARAM/LAD/HODO/lhodo_adc_tdc_offsets_May16.param"
 
+; LAD hodo bar timing (velFit, cableFit, LCoeff) and energy calibration per PMT-HV period (2026 recalibration).
+; NOTE (2026-10): these constants are better than the previous ones but are not final and will need
+; updating; in particular the energy scale (back-plane Delta-t vs front ridge vs MIP match) is still under study.
+; HV changes: 22375 (REFBAR, 01-01-01 top), 22533 (02-00-10 btm), 22536 (all), 22695 (all), 22698 (minor).
+; Loaded by the replay scripts after general.param, so they override its defaults.
+; Bar timing: p5 from the laser runs (22824-29, 23249-51, 23798-23821); p3 from p5 + the photon flash of 22536-22694;
+; p0 from p5 + the TDC-only laser run 22358 (no photon flash before 22536: gains too low).
+; p0a (< 22081), p0b (22081-22120) and p1 (22375-22535) = p0 with the back-plane (001, 101) LCoeff shifted by the
+; same-paddle front-back fast-pair residual of those runs (lad_pairs_period_offsets.py): fixes t_back - t_front only.
+; 22081 and 22120: FADC readout window / REFBAR HV changes in the run sheet; 22375 also changed a trigger window.
+0-22080
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p0a.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p0.param"
+
+22081-22120
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p0b.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p0.param"
+
+22121-22374
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p0.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p0.param"
+
+22375-22532
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p1.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p1.param"
+
+22533-22535
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p1.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p2.param"
+
+22536-22694
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p3.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p3.param"
+
+22695-22697
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p5.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p4.param"
+
+22698-99999
+g_ctp_lad_hodo_vp_filename   = "PARAM/LAD/HODO/ladhodo_Vpcalib_2026_p5.param"
+g_ctp_lad_hodo_edep_filename = "PARAM/LAD/HODO/ladhodo_edep_2026_p5.param"
+
 
 
 ## Everything below commented out. Can keep as template for run
