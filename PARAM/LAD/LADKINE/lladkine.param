@@ -31,8 +31,8 @@ ldo_xz_tracking       = 0  ; x-z (no-y) tracking: fit only x and z, drop the y r
 
 ; --- Track fit constraints (set to the code defaults) ---
 ; Angles are in RADIANS to match the values used in the track fit.
-lz_cell_min = -15.0        ; cm
-lz_cell_max =  15.0        ; cm
+lz_cell_min = -20.0        ; cm
+lz_cell_max =  20.0        ; cm
 ltheta_min  =  1.0471976   ; rad ( 60 deg)
 ltheta_max  =  2.9670597   ; rad (170 deg)
 lphi_min    = -0.8726646   ; rad (-50 deg)

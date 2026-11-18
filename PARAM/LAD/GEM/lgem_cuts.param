@@ -2,11 +2,13 @@
 
 ; flags
 lgem_commonmode_flag = 2; 0: cm_sorting, 1: cm_danning, 2: cm_histo
-lgem_zerosuppress = 1 ; 1: do zero supress ofline
-lgem_zerosuppress_nsigma = 10.0
+lgem_zerosuppress = 1 ; 1: do zero supress ofline, remove Strips where the ADCsum if below nsigm*pedrms
+lgem_zerosuppress_nsigma = 5.0
 lgem_onlinezerosuppress = 0 ; 1: zero supress is being done online
 lgem_pedsub_online = 0 ; 1: Ped Subtraction is being done at the MPD's
 lgem_max2Dhits = 10000000 ;changed
+lgem_max_tracks = 150000 ;
+lgem_zerosuppress_TS = 0; Remove time samples where the common mode and pedestal sutracted ADC values are below a certain threshold
 
 ; place holder for flags, parameters
 lgem_pedestal_mode = 0 ; 1: do GEM ped and CM calculation, should be off for production run 
@@ -24,7 +26,7 @@ lgem_commonmode_minstrips = 20
 
 lgem_usestriptimingcut = 1
 ;lgem_useTSchi2cut = 0
-;lgem_suppressfirstlast = 0
+lgem_suppressfirstlast = 1
 
 lgem_clustering_flag = 0
 
@@ -49,3 +51,37 @@ lgem_maxnu_charge = 4
 lgem_maxnv_charge = 4
 lgem_maxnu_pos = 3
 lgem_maxnv_pos = 3
+
+
+;GEM timing cut 
+lgem_m0_maxstrip_t0 = 80.0, 80.0
+lgem_m0_maxstrip_t0_deconv = 50.0, 50.0
+lgem_m0_maxstrip_t0_fit = 20.0, 20.0
+lgem_m0_maxstrip_tcut = 6.5, 6.5
+lgem_m0_maxstrip_tcut_deconv = 4.5, 4.5
+lgem_m0_maxstrip_tcut_fit = 4.5, 4.5
+lgem_m0_maxstrip_tsigma = 10.0, 10.0
+lgem_m0_maxstrip_tsigma_deconv = 15.0, 15.0
+lgem_m0_maxstrip_tsigma_fit = 10.0, 10.0
+lgem_m0_HitTimeMean = 80.0, 80.0
+lgem_m0_HitTimeMeanDeconv = 50.0, 50.0
+lgem_m0_HitTimeMeanFit = 20.0, 20.0
+lgem_m0_HitTimeSigma = 10.0, 10.0
+lgem_m0_HitTimeSigmaDeconv = 15.0, 15.0
+lgem_m0_HitTimeSigmaFit = 10.0, 10.0
+
+lgem_m1_maxstrip_t0 = 80.0, 80.0
+lgem_m1_maxstrip_t0_deconv = 50.0, 50.0
+lgem_m1_maxstrip_t0_fit = 20.0, 20.0
+lgem_m1_maxstrip_tcut = 6.5, 6.5
+lgem_m1_maxstrip_tcut_deconv = 4.5, 4.5
+lgem_m1_maxstrip_tcut_fit = 4.5, 4.5
+lgem_m1_maxstrip_tsigma = 10.0, 10.0
+lgem_m1_maxstrip_tsigma_deconv = 15.0, 15.0
+lgem_m1_maxstrip_tsigma_fit = 10.0, 10.0
+lgem_m1_HitTimeMean = 80.0, 80.0
+lgem_m1_HitTimeMeanDeconv = 50.0, 50.0
+lgem_m1_HitTimeMeanFit = 20.0, 20.0
+lgem_m1_HitTimeSigma = 10.0, 10.0
+lgem_m1_HitTimeSigmaDeconv = 15.0, 15.0
+lgem_m1_HitTimeSigmaFit = 10.0, 10.0
