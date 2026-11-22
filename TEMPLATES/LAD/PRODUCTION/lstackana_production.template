@@ -222,13 +222,15 @@ HMS_pTRIG6 Pre-scaled Pre-triggers :  {(H.pTRIG6.scalerCut/gHC_ti_ps_factors[5])
 =:=:=:=:
 
 SHMS EDTM Triggers           : {P.EDTM.scalerCut}
-SHMS Estimated EDTM Triggers : {P.EDTM.scalerCutRate*(P.1MHz.scalerCut/1000000.):%.0f}
-SHMS EDTM Trigger Rate       : {P.EDTM.scalerCutRate/1000.:%.3f} kHz
+SHMS Estimated EDTM Triggers : {(P.EDTM.scalerCut/P.1MHz.scalerTimeCut)*(P.1MHz.scalerCut/1000000.):%.0f}
+SHMS EDTM Trigger Rate       : {(P.EDTM.scalerCut/P.1MHz.scalerTimeCut)/1000.:%.3f} kHz
+SHMS EDTM Trigger Rate (no beam cut) : {P.EDTM.scalerRate/1000.:%.3f} kHz
 SHMS Accepted EDTM Triggers  : {SHMS_edtm_accepted.npassed}
 
 HMS EDTM Triggers            : {H.EDTM.scalerCut}
-HMS Estimated EDTM Triggers  : {H.EDTM.scalerCutRate*(H.1MHz.scalerCut/1000000.):%.0f}
-HMS EDTM Trigger Rate        : {H.EDTM.scalerCutRate/1000.:%.3f} kHz
+HMS Estimated EDTM Triggers  : {(H.EDTM.scalerCut/H.1MHz.scalerTimeCut)*(H.1MHz.scalerCut/1000000.):%.0f}
+HMS EDTM Trigger Rate        : {(H.EDTM.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f} kHz
+HMS EDTM Trigger Rate (no beam cut)  : {H.EDTM.scalerRate/1000.:%.3f} kHz
 HMS Accepted EDTM Triggers   : {HMS_edtm_accepted.npassed}
 
 =:=:=:=:=:=:=:=:=:=:=:=:=:=:=:=:
@@ -317,7 +319,7 @@ SHLO : {H.SHLO.scalerCut}  [ {(H.SHLO.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f
 ASUM : {H.ASUM.scalerCut}  [ {(H.ASUM.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f} kHz ]
 BSUM : {H.BSUM.scalerCut}  [ {(H.BSUM.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f} kHz ]
 CSUM : {H.CSUM.scalerCut}  [ {(H.CSUM.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f} kHz ]
-DSUM :  H.DSUM.scalerCut}  [ {(H.DSUM.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f} kHz ]
+DSUM : {H.DSUM.scalerCut}  [ {(H.DSUM.scalerCut/H.1MHz.scalerTimeCut)/1000.:%.3f} kHz ]
 
 
 =:=:=:=:=:=:=:=:=

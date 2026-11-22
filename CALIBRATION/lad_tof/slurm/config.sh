@@ -12,18 +12,24 @@ RUNLIST_DIR=$LADTOF_DIR/../files/run-lists
 WORK_BASE=${WORK_BASE:-/ceph/submit/data/user/${USER:0:1}/$USER/hallc/lad_tof_scratch/production}
 ROOT_SETUP=/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc11-opt/setup.sh
 export LADTOF_DIR WORK_BASE
+# Thread cap override for jobs already queued (their environment is fixed at submission): a number in
+# $WORK_BASE/threads_override replaces LADTOF_THREADS when a job starts. The partition gives ~1 CPU per 2 GB, so a
+# 30 GB lad_tracking_eff task holds 15 CPUs anyway; 8 threads use 27 GB and run 2.4x faster than 2.
+[ -s "$WORK_BASE/threads_override" ] && LADTOF_THREADS=$(cat "$WORK_BASE/threads_override")
 
 # Macro name -> final output file (relative to $LADTOF_DIR); "_<sigma>.root" is appended.
-ALL_MACROS=(lad_tracking_eff lad_hodo_eff lad_hodo_dist proton_tof_plot lad_gem_resid)
+ALL_MACROS=(lad_tracking_eff lad_hodo_eff lad_hodo_dist proton_tof_plot lad_gem_resid lad_tracking_condeff)
 declare -A OUTBASE=(
   [lad_tracking_eff]=files/tracking_eff/tracking_eff_C3_SHMS_13p5_v5_PH
   [lad_hodo_eff]=files/hodo_eff/hodo_eff_C3_SHMS_13p5_v4_PH
   [lad_hodo_dist]=files/hodo_dist/hodo_dist_C3_SHMS_13p5_v4_PH
   [proton_tof_plot]=files/proton_tof/proton_tof_C3_SHMS_13p5_PH
   [lad_gem_resid]=files/gem_resid/gem_resid_C3_SHMS_13p5_P
+  [lad_tracking_condeff]=files/condeff/condeff_C3_SHMS_13p5_P
 )
 # Run when no selection is given. proton_tof_plot is opt-in (its canvases are
-# also produced by lad_tracking_eff), and so is lad_gem_resid (GEM residual study).
+# also produced by lad_tracking_eff), and so are lad_gem_resid (GEM residual study) and
+# lad_tracking_condeff (conditional 1D tracking efficiencies).
 DEFAULT_MACROS=(lad_tracking_eff lad_hodo_eff lad_hodo_dist)
 
 # Macros to run: LADTOF_MACROS (comma- or space-separated) selects a subset;

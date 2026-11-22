@@ -40,9 +40,10 @@ for sig in "${sigmas[@]}"; do
   for m in "${MACROS[@]}"; do rm -f "$WORK_BASE/$sig/cache/${m}"_chunk_*.root "$WORK_BASE/$sig/cache/${m}_merged.root"; done
   n=$(bash "$LADTOF_DIR/slurm/make_chunks.sh" "$sig" "$chunk_gb") || exit 1
   # --export=ALL passes LADTOF_DIR, WORK_BASE and LADTOF_MACROS to the jobs.
-  map=$(sbatch --parsable --mem=$mem --array=0-$((n - 1)) --output="$WORK_BASE/logs/map_%x_%A_%a.log" \
+  # LADTOF_TIME overrides the 4 h map limit (needed for runlists with ~100 GB single files, e.g. LD2 23110/23111).
+  map=$(sbatch --parsable --mem=$mem --time=${LADTOF_TIME:-04:00:00} --array=0-$((n - 1)) --output="$WORK_BASE/logs/map_%x_%A_%a.log" \
     --export=ALL,SIGMA=$sig "$LADTOF_DIR/slurm/map_job.sh") || exit 1
-  merge=$(sbatch --parsable --dependency=afterok:$map --output="$WORK_BASE/logs/merge_%x_%j.log" \
+  merge=$(sbatch --parsable --mem=${LADTOF_MERGE_MEM:-12G} --dependency=afterok:$map --output="$WORK_BASE/logs/merge_%x_%j.log" \
     --export=ALL,SIGMA=$sig "$LADTOF_DIR/slurm/merge_job.sh") || exit 1
   echo "$sig: $n chunks -> map job $map, merge job $merge"
 done

@@ -1,0 +1,54 @@
+Block: Decode
+
+# Accepted-trigger and EDTM cuts used by TEMPLATES/LAD/PRODUCTION/lstackana_production.template
+#
+# The standard Hall C COIN setup reads the trigger TDCs through a single
+# THcTrigDet called "coin", so those cuts are named T.coin.<sig>_ROC<n>_tdcTime.
+# The LAD setup instead instantiates one THcTrigDet per crate:
+#
+#   ROC2 (SHMS crate) -> THcTrigDet "shms"  -> T.shms.*
+#   ROC1 (HMS  crate) -> THcTrigDet "hms"   -> T.hms.*
+#
+# so the "_ROC2"/"_ROC1" suffix in the report template maps onto the detector
+# name rather than onto the signal name.  Both crates latch the full pTRIG1-6
+# and hTRIG1-6 sets (see PARAM/TRIG/tshms.param and PARAM/TRIG/thms.param).
+#
+# THcTrigDet::Clear() zeroes fTdcTimeRaw for channels with no hit, so
+# "tdcTimeRaw > 0" is the hit-present test (same convention as
+# pstackana_decode_cuts.def / hstackana_decode_cuts.def).
+
+pTRIG1_ROC2        T.shms.pTRIG1_tdcTimeRaw > 0
+pTRIG2_ROC2        T.shms.pTRIG2_tdcTimeRaw > 0
+pTRIG3_ROC2        T.shms.pTRIG3_tdcTimeRaw > 0
+pTRIG4_ROC2        T.shms.pTRIG4_tdcTimeRaw > 0
+pTRIG5_ROC2        T.shms.pTRIG5_tdcTimeRaw > 0
+pTRIG6_ROC2        T.shms.pTRIG6_tdcTimeRaw > 0
+
+hTRIG1_ROC2        T.shms.hTRIG1_tdcTimeRaw > 0
+hTRIG2_ROC2        T.shms.hTRIG2_tdcTimeRaw > 0
+hTRIG3_ROC2        T.shms.hTRIG3_tdcTimeRaw > 0
+hTRIG4_ROC2        T.shms.hTRIG4_tdcTimeRaw > 0
+hTRIG5_ROC2        T.shms.hTRIG5_tdcTimeRaw > 0
+hTRIG6_ROC2        T.shms.hTRIG6_tdcTimeRaw > 0
+
+pTRIG1_ROC1        T.hms.pTRIG1_tdcTimeRaw > 0
+pTRIG2_ROC1        T.hms.pTRIG2_tdcTimeRaw > 0
+pTRIG3_ROC1        T.hms.pTRIG3_tdcTimeRaw > 0
+pTRIG4_ROC1        T.hms.pTRIG4_tdcTimeRaw > 0
+pTRIG5_ROC1        T.hms.pTRIG5_tdcTimeRaw > 0
+pTRIG6_ROC1        T.hms.pTRIG6_tdcTimeRaw > 0
+
+hTRIG1_ROC1        T.hms.hTRIG1_tdcTimeRaw > 0
+hTRIG2_ROC1        T.hms.hTRIG2_tdcTimeRaw > 0
+hTRIG3_ROC1        T.hms.hTRIG3_tdcTimeRaw > 0
+hTRIG4_ROC1        T.hms.hTRIG4_tdcTimeRaw > 0
+hTRIG5_ROC1        T.hms.hTRIG5_tdcTimeRaw > 0
+hTRIG6_ROC1        T.hms.hTRIG6_tdcTimeRaw > 0
+
+# Aliases for the per-spectrometer EDTM cuts already defined in
+# pstackana_decode_cuts.def / hstackana_decode_cuts.def, under the names the
+# report template expects.
+SHMS_edtm_accepted     pcut_edtm_accepted
+SHMS_physics_accepted  pcut_physics_accepted
+HMS_edtm_accepted      hcut_edtm_accepted
+HMS_physics_accepted   hcut_physics_accepted

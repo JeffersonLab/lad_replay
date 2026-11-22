@@ -19,7 +19,7 @@
 // subtraction follows written_docs/background_subtraction (eq. 8): all hits get
 // a flat (tof-width scaled) OOT subtraction; with-track hits lose the GEM-noise
 // tagged hits, f/(1-f) x the no-track hits in the same window, then the in-time
-// accidentals (trapezoid scale factor from the pad-2 proton+track fit); no-track
+// accidentals (flat over [-43,32]: in-time window [-43,-3] scaled by 20/40); no-track
 // = all - with-track. See draw_qcanvas.
 //
 // It ALSO reproduces the _c_proton_tof canvas (per spectrometer / cut / variant).
@@ -124,6 +124,10 @@ const std::array<double, N_CUTS> CHI_CUT_SCALES = {0.01, 0.1, 0.5, 1.0, 5.0}; //
 // can be projected out at plot time. 5-ns bins over [-168,157]: every region
 // boundary (-168,-118,-43,12,32,107,157) lands on a bin edge.
 const int TOF2_NBINS = 65;
+// The flat in-time window [ITF_LO, ITF_HI] = [-43, 0] ends inside a 5 ns bin ([-3, 2)): on this axis it stops at the
+// edge below, -3 ns, so it stays clear of the pre-peak shoulder; the IT -> peak scale uses the same window (20/40).
+const double TOF2_BINW = (ladtof::TCORR_HI - ladtof::TCORR_LO) / TOF2_NBINS;
+const double ITF_HI_BIN = ladtof::TCORR_LO + std::floor((ladtof::ITF_HI - ladtof::TCORR_LO) / TOF2_BINW + 1e-9) * TOF2_BINW;
 
 // Quantity (X) axis binnings.
 const int YP_NB = 20;                        // y-on-bar: 24 cm bins (4x coarser)
@@ -141,7 +145,7 @@ const char *const GREG_NAME[N_GREG] = {"all", "oot", "it", "peak"};
 const std::vector<std::vector<std::array<double, 2>>> GREG_INT = {
     {{-1e9, 1e9}},                        // all
     {{SB_LO1, SB_HI1}, {SB_LO2, SB_HI2}}, // oot: [-168,-118] u [107,157]
-    {{ladtof::IT_LO1, ladtof::IT_HI1}, {ladtof::IT_LO2, ladtof::IT_HI2}}, // it: [-43,12] u [32,107]
+    {{ladtof::ITF_LO, ITF_HI_BIN}},       // it: [-43,-3], the flat in-time plateau (ITF_HI_BIN)
     {{ladtof::PEAK_LO, ladtof::PEAK_HI}}}; // peak: [12,32]
 
 const double hodo_radii[5] = {615., 655.6, 523., 563.6, 615.}; // cm, by plane index
@@ -153,25 +157,8 @@ const char *DEFAULT_DAT_FILE = "../files/run-lists/all_C3_runlist_SHMS_13p5.dat"
 const char *DEFAULT_OUT_FILE = "files/hodo_eff/hodo_eff_C3_SHMS_13p5_v4_PH.root";
 
 // ----- fit models reused from lad_tracking_eff.C for the proton_tof canvas -----
-// flat + fixed-corner trapezoid (corners -93,-43,32,107) + gaussian.
-static double trapgaus(double *xx, double *p) {
-  const double x = xx[0];
-  const double flat = p[0];
-  const double amp = p[1] - p[0];
-  double trap;
-  if (x < ladtof::TRAP_C0)
-    trap = 0.;
-  else if (x < ladtof::TRAP_C1)
-    trap = amp * (x - ladtof::TRAP_C0) / (ladtof::TRAP_C1 - ladtof::TRAP_C0);
-  else if (x < ladtof::TRAP_C2)
-    trap = amp;
-  else if (x < ladtof::TRAP_C3)
-    trap = amp * (ladtof::TRAP_C3 - x) / (ladtof::TRAP_C3 - ladtof::TRAP_C2);
-  else
-    trap = 0.;
-  const double g = p[2] * std::exp(-0.5 * std::pow((x - p[3]) / p[4], 2));
-  return flat + trap + g;
-}
+// flat + gaussian: pad 1 (flat accidentals, full range) and pad 2 (tracked, flat in-time plateau, fit over
+// [FLATFIT_LO, FLATFIT_HI] = [-43, 32] only). Parameters: flat, gaus_h, gaus_mean, gaus_sigma.
 static double flatgaus(double *xx, double *p) {
   const double x = xx[0];
   return p[0] + p[1] * std::exp(-0.5 * std::pow((x - p[2]) / p[3], 2));
@@ -464,7 +451,7 @@ void lad_hodo_eff(const char *dat_file = DEFAULT_DAT_FILE, const char *out_file 
       df = df.Alias(sp + "_paddle_1", pfx + "paddle_1");
       df = ladtof::define_tof(df, sp + "_tof_1", specs[is], "1"); // calibrated ToF, any replay
       df = df.Alias(sp + "_ypos_1", pfx + "hit_ypos_1");
-      df = df.Alias(sp + "_isProton_1", pfx + "isProton_1");
+      df = df.Define(sp + "_isProton_1", ladtof::proton_flag, {pfx + "isProton_1", pfx + "hitedep_MeV_0"}); // + E_front cut
       df = df.Alias(sp + "_hittime_0", pfx + "hittime_0");
       df = df.Alias(sp + "_hittime_1", pfx + "hittime_1");
       df = df.Alias(sp + "_edepMeV_1", pfx + "hitedep_MeV_1");
@@ -917,15 +904,15 @@ void lad_hodo_eff(const char *dat_file = DEFAULT_DAT_FILE, const char *out_file 
         // ---- fit the proton+track tof (pad-2 model): needed for BOTH the
         //      _c_proton_tof canvas and the background-subtraction scale factors.
         TH1D *hpt = h_proton_track_tof[is][ic][it];
-        TF1 *f2 = new TF1((sp + "_fit_trapgaus" + tu + cc).c_str(), trapgaus, ladtof::FIT_LO, ladtof::FIT_HI, 5);
-        f2->SetParNames("flat", "trap_top", "gaus_h", "gaus_mean", "gaus_sigma");
-        f2->SetParameters(50., 70., 100., ladtof::PEAK_MEAN0, 5.);
-        f2->FixParameter(3, ladtof::PEAK_MEAN0);
+        TF1 *f2 = new TF1((sp + "_fit_flatgaus_trk" + tu + cc).c_str(), flatgaus, ladtof::FLATFIT_LO, ladtof::FLATFIT_HI,
+                          4);
+        f2->SetParNames("plateau", "gaus_h", "gaus_mean", "gaus_sigma");
+        ladtof::init_flatgaus_trk(f2, hpt); // start values from the histogram; centre free in [12,32] (P and H)
         f2->SetLineColor(kGreen + 2);
         f2->SetNpx(600);
         if (hpt)
           hpt->Fit(f2, "RQN0");
-        const double sig2 = f2->GetParameter(4);
+        const double sig2 = f2->GetParameter(3);
 
         // ---- _c_proton_tof (2x2): pad1 proton total, pad2 proton+track, pad3
         //      (bg-subtracted) ratio, pad4 raw ratio. Reproduced from
@@ -940,9 +927,7 @@ void lad_hodo_eff(const char *dat_file = DEFAULT_DAT_FILE, const char *out_file 
           TH1D *hp1 = (TH1D *)h_proton_tof[is]->Clone((sp + "_ptof_p1" + tu + cc).c_str());
           TF1 *f1 = new TF1((sp + "_fit_flatgaus" + tu + cc).c_str(), flatgaus, ladtof::FIT_LO, ladtof::FIT_HI, 4);
           f1->SetParNames("flat", "gaus_h", "gaus_mean", "gaus_sigma");
-          f1->SetParameters(50., 100., ladtof::PEAK_MEAN0, sig2);
-          f1->FixParameter(2, ladtof::PEAK_MEAN0);
-          f1->FixParameter(3, sig2);
+          ladtof::init_flatgaus(f1, hp1, f2->GetParameter(2), sig2); // pad-2 centre and width
           f1->SetLineColor(kGreen + 2);
           f1->SetNpx(600);
           hp1->Fit(f1, "RQN0");
@@ -959,13 +944,13 @@ void lad_hodo_eff(const char *dat_file = DEFAULT_DAT_FILE, const char *out_file 
                             {SB_LO2, SB_HI2, (double)kSB, (double)fsSB},
                             {ladtof::PEAK_LO, ladtof::PEAK_HI, (double)kPk, (double)fsPk}});
           f2->Draw("same");
-          draw_gaus_integral(ht2, f2->GetParameter(2), f2->GetParameter(4));
+          draw_gaus_integral(ht2, f2->GetParameter(1), f2->GetParameter(3));
           delete ht2;
           // pad 3: (track - fitbg) / (total - fitbg), rebinned by 5.
           c->cd(3);
           const double orig_binw = hpt->GetXaxis()->GetBinWidth(1);
-          TF1 *fbg_trk = new TF1((sp + "_bg_trk" + tu + cc).c_str(), trapgaus, ladtof::FIT_LO, ladtof::FIT_HI, 5);
-          fbg_trk->SetParameters(f2->GetParameter(0), f2->GetParameter(1), 0., f2->GetParameter(3), f2->GetParameter(4));
+          TF1 *fbg_trk = new TF1((sp + "_bg_trk" + tu + cc).c_str(), flatgaus, ladtof::FIT_LO, ladtof::FIT_HI, 4);
+          fbg_trk->SetParameters(f2->GetParameter(0), 0., f2->GetParameter(2), f2->GetParameter(3));
           TF1 *fbg_tot = new TF1((sp + "_bg_tot" + tu + cc).c_str(), flatgaus, ladtof::FIT_LO, ladtof::FIT_HI, 4);
           fbg_tot->SetParameters(f1->GetParameter(0), 0., f1->GetParameter(2), f1->GetParameter(3));
           TH1D *ht_rb5 = (TH1D *)hpt->Clone((sp + "_ratio_trk_rb5" + tu + cc).c_str());
@@ -982,8 +967,8 @@ void lad_hodo_eff(const char *dat_file = DEFAULT_DAT_FILE, const char *out_file 
                                .c_str());
           hratio->Divide(hp_rb5);
           noise_correct_ratio(hratio, f_noise3);
-          hratio->GetXaxis()->SetRangeUser(ladtof::RATIO_LO, ladtof::RATIO_HI);
-          hratio->GetYaxis()->SetRangeUser(0., 3.);
+          hratio->GetXaxis()->SetRangeUser(ladtof::FLATFIT_LO, ladtof::FLATFIT_HI); // where the plateau model holds
+          hratio->GetYaxis()->SetRangeUser(-0.2, 1.2);
           draw_shaded(hratio, {{ladtof::PEAK_LO, ladtof::PEAK_HI, (double)kPk, (double)fsPk}});
           delete hratio;
           delete ht_rb5;
@@ -1016,11 +1001,8 @@ void lad_hodo_eff(const char *dat_file = DEFAULT_DAT_FILE, const char *out_file 
         // with track: GEM-noise fraction f from the proton tof spectra (eq. 3).
         const double f_noise = noise_frac(h_proton_tof[is], h_proton_track_tof[is][ic][it]);
         const double rnoise = (f_noise < 1.) ? f_noise / (1. - f_noise) : 0.;
-        TF1 ftr((sp + "_htrap" + tu + cc).c_str(), trapgaus, ladtof::FIT_LO, ladtof::FIT_HI, 5);
-        ftr.SetParameters(0., f2->GetParameter(1) - f2->GetParameter(0), 0., f2->GetParameter(3), f2->GetParameter(4));
-        auto Itr = [&](int r) { double s = 0.; for (const auto &iv : GREG_INT[r]) s += ftr.Integral(iv[0], iv[1]); return s; };
-        const double itrIT = Itr(2), itrPK = Itr(3);
-        const double strap = (itrIT != 0.) ? itrPK / itrIT : 0.;
+        // flat in-time accidentals, IT -> peak window, with the IT window as projected on the 5 ns axis (20/40)
+        const double strap = ladtof::acc_shape_int(ladtof::PEAK_LO, ladtof::PEAK_HI) / ladtof::acc_shape_int(ladtof::ITF_LO, ITF_HI_BIN);
         delete f2;
 
         // ---- per-plane quantity canvases ----

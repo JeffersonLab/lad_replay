@@ -1,0 +1,13 @@
+; Monte Carlo variant of standard.database -- only g_ctp_parm_filename
+; differs, pointing at general_mc.param (which sets is_mc=1).
+0-99999
+g_ctp_parm_filename       = "DBASE/LAD/general_mc.param"
+g_ctp_kinematics_filename = "DBASE/LAD/standard.kinematics"
+
+; LAD GEM alignment depends on the SHMS angle.
+; SHMS moved 17 deg -> 13.5 deg at run 23426.
+0-23425
+g_ctp_lad_gem_align_filename = "PARAM/LAD/GEM/lgem_align_shms17.param"
+
+23426-99999
+g_ctp_lad_gem_align_filename = "PARAM/LAD/GEM/lgem_align_shms13p5.param"
